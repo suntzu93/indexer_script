@@ -3,15 +3,14 @@ import json
 import requests
 import subprocess
 import time
+import config
+
 
 # Global variables
-token = ""
-network = ""
-indexer_management_url = ""
-indexer_graph = ""
-# indexer_address = ""
-# txn_rpc = ""
-# graph_index_node = ""
+token = config.token
+network = config.network
+indexer_management_url = config.indexer_management_url
+indexer_graph = config.indexer_graph
 
 headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
@@ -175,30 +174,8 @@ def verify_config():
     print("Indexer graph version : " + graph_version)
 
 
-def read_config_file():
-    try:
-        global token
-        global network
-        global indexer_management_url
-        global indexer_graph
-        config_file = open(".config", "r")
-        config_obj = json.loads(config_file.read())
-        token = config_obj["token"]
-        network = config_obj["network"]
-        indexer_management_url = config_obj["indexer_management_url"]
-        indexer_graph = config_obj["indexer_graph"]
-        # indexer_address = config_obj["indexer_address"]
-        # txn_rpc = config_obj["txn_rpc"]
-        # graph_index_node = config_obj["graph_index_node"]
-
-        config_file.close()
-    except Exception as e:
-        print(e)
-
-
 if __name__ == '__main__':
     print_hi()
-    read_config_file()
     verify_config()
     while True:
         try:

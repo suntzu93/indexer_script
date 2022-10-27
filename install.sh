@@ -9,3 +9,5 @@ apt-get -y install tmux
 #install libraries
 pip3 install request
 pip3 install subprocess.run
+pip3 install flask
+pip3 install -U flask-cors
