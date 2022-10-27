@@ -4,7 +4,7 @@
 2. cd indexer_script
 3. chmod +X install.sh
 4. ./install.sh
-5. Change data in .config file
+5. Change data in config.py file
 6. python3 main.py
 
 # Run below background
