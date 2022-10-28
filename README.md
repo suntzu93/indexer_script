@@ -16,7 +16,18 @@ python3 main.py
 
 tmux new -s manage_action
 flask --app manage_actions.py run --host 0.0.0.0 --port 5502
+
 ```
+**config.py**
+
+`token : Connect wallet and generate token on` <a href="https://graphindexer.co" target="_blank">graphindexer.io</a> 
+
+`network : Choose the right network (mainnet / testnet)` 
+
+`indexer_management_url : Indexer management API (default port 18000)`
+
+`indexer_graph : graph-indexer cli` [Detail](https://github.com/graphprotocol/indexer)
+
 
 ***If your server did not install graph-indexer then follow commands***
 ```
