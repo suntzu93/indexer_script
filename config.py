@@ -6,5 +6,7 @@ indexer_agent_network_subgraph_endpoint = ""
 node_rpc = ""
 indexer_graph = ""
 indexer_address = ""
+agent_log = ""
+agent_restart_cmd = ""
 host = "0.0.0.0"
 port = 5502

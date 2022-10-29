@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import request
+from flask import Flask, request
 import subprocess
 import config
 from flask_cors import CORS
@@ -107,3 +106,51 @@ def get_poi():
     except Exception as e:
         print(e)
         return action_output
+
+
+@app.route('/streamLog', methods=['POST'])
+def stream_log():
+    token = request.form.get("token")
+
+    def tail(f, lines=500):
+        total_lines_wanted = lines
+
+        BLOCK_SIZE = 1024
+        f.seek(0, 2)
+        block_end_byte = f.tell()
+        lines_to_go = total_lines_wanted
+        block_number = -1
+        blocks = []
+        while lines_to_go > 0 and block_end_byte > 0:
+            if block_end_byte - BLOCK_SIZE > 0:
+                f.seek(block_number * BLOCK_SIZE, 2)
+                blocks.append(f.read(BLOCK_SIZE))
+            else:
+                f.seek(0, 0)
+                blocks.append(f.read(block_end_byte))
+            lines_found = blocks[-1].count(b'\n')
+            lines_to_go -= lines_found
+            block_end_byte -= BLOCK_SIZE
+            block_number -= 1
+        all_read_text = b''.join(reversed(blocks))
+        return b'\n'.join(all_read_text.splitlines()[-total_lines_wanted:])
+
+    if token == config.token:
+        f = open(config.agent_log, 'rb')
+        return tail(f)
+    return ""
+
+
+@app.route('/restartAgent', methods=['POST'])
+def restart_agent():
+    try:
+        token = request.form.get("token")
+        if token == config.token:
+            cmd_restart_agent = f"{config.agent_restart_cmd}"
+
+            print("Execute cmd : " + cmd_restart_agent)
+            subprocess.run([cmd_restart_agent], shell=True, check=True)
+            return "OK"
+    except Exception as e:
+        print(e)
+        return "ERROR"
