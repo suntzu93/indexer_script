@@ -12,21 +12,21 @@
 tmux new -s indexer_script
 python3 main.py
 
-# Run below background for manager_actions
-
-tmux new -s manage_action
-flask --app manage_actions.py run --host 0.0.0.0 --port 5502
-
 ```
 **config.py**
 
-`token : Connect wallet and generate token on` <a href="https://graphindexer.co" target="_blank">graphindexer.io</a> 
-
-`network : Choose the right network (mainnet / testnet)` 
-
-`indexer_management_url : Indexer management API (default port 18000)`
-
-`indexer_graph : graph-indexer cli` [Detail](https://github.com/graphprotocol/indexer)
+| Attempt | #Description    |
+| :---:   | :---: |
+| token | Connect wallet and generate token on` <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>    |
+| network | Choose the right network (mainnet / testnet) |
+| indexer_management_url   | Indexer management API (default port 18000) |
+| indexer_node_rpc   | Graph Index Node Server (default port 8030) |
+| indexer_agent_network_subgraph_endpoint   | **testnet** : https://gateway.testnet.thegraph.com/network or **mainnet** : https://gateway.thegraph.com/network |
+| node_rpc   | **testnet** : Goerli RPC or **mainnet** : eth mainnet rpc |
+| indexer_graph   | indexer cli` [Detail](https://github.com/graphprotocol/indexer) |
+| indexer_address   | Indexer address |
+| host   | Should be 0.0.0.0 to access from network |
+| port   | Indexer script port |
 
 
 ***If your server did not install graph-indexer then follow commands***
