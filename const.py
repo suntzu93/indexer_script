@@ -12,4 +12,6 @@ RE_ALLOCATION_ACTION=4
 STATUS_QUEUE="Queue"
 STATUS_APPROVE="Approved"
 
-#Action commands
+#Error
+
+TOKEN_ERROR = "TOKEN ERROR"

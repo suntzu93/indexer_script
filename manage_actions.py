@@ -4,6 +4,8 @@ import config
 from flask_cors import CORS
 import requests
 
+import const
+
 app = Flask(__name__)
 CORS(app)
 
@@ -25,6 +27,8 @@ def get_actions():
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
             action_output = process.stdout
+        else:
+            return const.TOKEN_ERROR
         return action_output
     except Exception as e:
         print(e)
@@ -45,7 +49,8 @@ def cancel_actions():
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
             action_output = process.stdout
-
+        else:
+            return const.TOKEN_ERROR
         return action_output
     except Exception as e:
         print(e)
@@ -59,49 +64,51 @@ def get_poi():
         deployment = request.form.get("deployment")
         blockBroken = request.form.get("blockBroken")
         action_output = "NO VALID POI"
-        if token == config.token:
-            graphql_startBlock = """
+        if token != config.token:
+            return const.TOKEN_ERROR
+
+        graphql_startBlock = """
                 {
                   epoches(where: {startBlock_lt: %s, endBlock_gt: %s}) {
                     startBlock
                   }
                 }
                 """
-            response = requests.post(url=config.indexer_agent_network_subgraph_endpoint,
-                                     json={"query": graphql_startBlock % (blockBroken, blockBroken)})
-            json_data = response.json()
-            if response.status_code == 200:
-                startBlock = json_data["data"]["epoches"][0]["startBlock"]
-                startBlockHex = hex(startBlock)
+        response = requests.post(url=config.indexer_agent_network_subgraph_endpoint,
+                                 json={"query": graphql_startBlock % (blockBroken, blockBroken)})
+        json_data = response.json()
+        if response.status_code == 200:
+            startBlock = json_data["data"]["epoches"][0]["startBlock"]
+            startBlockHex = hex(startBlock)
 
-                playload_blockHash = {
-                    "id": 1,
-                    "jsonrpc": "2.0",
-                    "method": "eth_getBlockByNumber",
-                    "params": [str(startBlockHex), False]
-                }
-                headers = {
-                    "accept": "application/json",
-                    "content-type": "application/json"
-                }
-                responseBlockHash = requests.post(url=config.node_rpc,
-                                                  json=playload_blockHash,
-                                                  headers=headers)
-                block_hash_data = responseBlockHash.json()
-                block_hash = block_hash_data["result"]["hash"]
+            playload_blockHash = {
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "eth_getBlockByNumber",
+                "params": [str(startBlockHex), False]
+            }
+            headers = {
+                "accept": "application/json",
+                "content-type": "application/json"
+            }
+            responseBlockHash = requests.post(url=config.node_rpc,
+                                              json=playload_blockHash,
+                                              headers=headers)
+            block_hash_data = responseBlockHash.json()
+            block_hash = block_hash_data["result"]["hash"]
 
-                proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
-                    deployment, block_hash, startBlock, config.indexer_address)
+            proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
+                deployment, block_hash, startBlock, config.indexer_address)
 
-                graphql_proof_of_indexing = {
-                    "query": proof_of_indexing
-                }
+            graphql_proof_of_indexing = {
+                "query": proof_of_indexing
+            }
 
-                poi_response = requests.post(url=config.indexer_node_rpc,
-                                             json=graphql_proof_of_indexing)
-                if poi_response.status_code == 200:
-                    json_poi = poi_response.json()
-                    return json_poi["data"]["proofOfIndexing"]
+            poi_response = requests.post(url=config.indexer_node_rpc,
+                                         json=graphql_proof_of_indexing)
+            if poi_response.status_code == 200:
+                json_poi = poi_response.json()
+                return json_poi["data"]["proofOfIndexing"]
         return action_output
     except Exception as e:
         print(e)
@@ -138,6 +145,8 @@ def stream_log():
     if token == config.token:
         f = open(config.agent_log, 'rb')
         return tail(f)
+    else:
+        return const.TOKEN_ERROR
     return ""
 
 
@@ -151,6 +160,8 @@ def restart_agent():
             print("Execute cmd : " + cmd_restart_agent)
             subprocess.run([cmd_restart_agent], shell=True, check=True)
             return "OK"
+        else:
+            return const.TOKEN_ERROR
     except Exception as e:
         print(e)
         return "ERROR"
