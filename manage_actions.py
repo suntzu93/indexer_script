@@ -157,7 +157,7 @@ def get_healthy_subgraph():
         subgraphs = request.form.get("subgraphs")
         if token == config.token:
             graphql_healthy_subgraph = """
-                            { indexingStatuses(subgraphs: [%s]) { subgraph synced health fatalError {message deterministic block { number }} }}}
+                            { indexingStatuses(subgraphs: [%s]) { subgraph synced health fatalError {message deterministic block { number }} }}
                             """ % subgraphs
             response = requests.post(url=config.indexer_node_rpc,
                                      json={"query": graphql_healthy_subgraph})
