@@ -17,16 +17,16 @@ python3 main.py
 
 | Attempt | #Description    |
 | :---:   | :---: |
-| token | Connect wallet and generate token on` <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>    |
+| token | Connect wallet and generate token on <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>    |
 | network | Choose the right network (mainnet / testnet) |
 | indexer_management_url   | Indexer management API (default port 18000) |
 | indexer_node_rpc   | Graph Index Node Server (default port 8030) |
 | indexer_agent_network_subgraph_endpoint   | **testnet** : https://gateway.testnet.thegraph.com/network or **mainnet** : https://gateway.thegraph.com/network |
 | node_rpc   | **testnet** : Goerli RPC or **mainnet** : eth mainnet rpc |
-| indexer_graph   | indexer cli` [Detail](https://github.com/graphprotocol/indexer) |
+| indexer_graph   | indexer cli [Detail](https://github.com/graphprotocol/indexer) |
 | indexer_address   | Indexer address |
 | host   | Should be 0.0.0.0 to access from network |
-| port   | Indexer script port |
+| port   | Indexer script port (default 5502) |
 
 
 ***If your server did not install graph-indexer then follow commands***
