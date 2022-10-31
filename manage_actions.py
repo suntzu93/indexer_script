@@ -150,6 +150,26 @@ def stream_log():
     return ""
 
 
+@app.route('/getHealthy', methods=['POST'])
+def get_healthy_subgraph():
+    try:
+        token = request.form.get("token")
+        subgraphs = request.form.get("subgraphs")
+        if token == config.token:
+            graphql_healthy_subgraph = """
+                            { indexingStatuses(subgraphs: %s) { subgraph synced health chains {latestBlock {hash number} }}}
+                            """ % subgraphs
+            response = requests.post(url=config.indexer_node_rpc,
+                                     json={"query": graphql_healthy_subgraph})
+            json_data = response.json()
+            return json_data
+        else:
+            return const.TOKEN_ERROR
+    except Exception as e:
+        print(e)
+        return "ERROR"
+
+
 @app.route('/restartAgent', methods=['POST'])
 def restart_agent():
     try:
