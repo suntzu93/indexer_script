@@ -155,7 +155,6 @@ def get_healthy_subgraph():
     try:
         token = request.form.get("token")
         subgraphs = request.form.get("subgraphs")
-        print("subgraphs : " + subgraphs)
         if token == config.token:
             graphql_healthy_subgraph = """
                             { indexingStatuses(subgraphs: [%s]) { subgraph synced health chains {latestBlock {hash number} }}}
