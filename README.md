@@ -12,6 +12,14 @@
 tmux new -s indexer_script
 python3 main.py
 
+or with pm2
+
+cat <<'EOT' > /root/indexer_script/indexer_script.sh
+#!/bin/bash
+python3 /root/indexer_script/main.py
+EOT
+
+pm2 start /root/indexer_script/indexer_script.sh
 ```
 **config.py**
 
@@ -28,6 +36,22 @@ python3 main.py
 | host   | Should be 0.0.0.0 to access from network |
 | port   | Indexer script port (default 5502) |
 
+*example:*
+
+```
+token = "0x14958542867fc280a3879f23843f389a78d9e32539..."
+network = "testnet"
+indexer_management_url = "http://127.0.0.1:18000"
+indexer_node_rpc = "http://127.0.0.1:8030/graphql"
+indexer_agent_network_subgraph_endpoint = "https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli"
+node_rpc = "https://eth-goerli.g.alchemy.com/v2/<token>"
+indexer_graph = "/indexer/node_modules/@graphprotocol/indexer-cli/bin/graph-indexer"
+indexer_address = "0x4167eb613d784c910f5dc0f3f0515d61ec6ec8df"
+agent_log = "/root/agent_log.txt"
+agent_restart_cmd = "pm2 restart indexer_agent"
+host = "0.0.0.0"
+port = 5502
+```
 
 ***If your server did not install graph-indexer then follow commands***
 ```

@@ -3,11 +3,13 @@ import subprocess
 import config
 from flask_cors import CORS
 import requests
-
+import logging
 import const
 
 app = Flask(__name__)
 CORS(app)
+
+logging.basicConfig(filename='indexer_script.log', level=logging.INFO)
 
 
 @app.route('/actions', methods=['POST'])
@@ -32,6 +34,7 @@ def get_actions():
         return action_output
     except Exception as e:
         print(e)
+        logging.error("get_actions: " + str(e))
         return []
 
 
@@ -54,6 +57,7 @@ def cancel_actions():
         return action_output
     except Exception as e:
         print(e)
+        logging.error("cancel_actions: " + str(e))
         return []
 
 
@@ -112,42 +116,48 @@ def get_poi():
         return action_output
     except Exception as e:
         print(e)
+        logging.error("get_poi: " + str(e))
         return action_output
 
 
 @app.route('/streamLog', methods=['POST'])
 def stream_log():
-    token = request.form.get("token")
+    try:
+        token = request.form.get("token")
 
-    def tail(f, lines=500):
-        total_lines_wanted = lines
+        def tail(f, lines=500):
+            total_lines_wanted = lines
 
-        BLOCK_SIZE = 1024
-        f.seek(0, 2)
-        block_end_byte = f.tell()
-        lines_to_go = total_lines_wanted
-        block_number = -1
-        blocks = []
-        while lines_to_go > 0 and block_end_byte > 0:
-            if block_end_byte - BLOCK_SIZE > 0:
-                f.seek(block_number * BLOCK_SIZE, 2)
-                blocks.append(f.read(BLOCK_SIZE))
-            else:
-                f.seek(0, 0)
-                blocks.append(f.read(block_end_byte))
-            lines_found = blocks[-1].count(b'\n')
-            lines_to_go -= lines_found
-            block_end_byte -= BLOCK_SIZE
-            block_number -= 1
-        all_read_text = b''.join(reversed(blocks))
-        return b'\n'.join(all_read_text.splitlines()[-total_lines_wanted:])
+            BLOCK_SIZE = 1024
+            f.seek(0, 2)
+            block_end_byte = f.tell()
+            lines_to_go = total_lines_wanted
+            block_number = -1
+            blocks = []
+            while lines_to_go > 0 and block_end_byte > 0:
+                if block_end_byte - BLOCK_SIZE > 0:
+                    f.seek(block_number * BLOCK_SIZE, 2)
+                    blocks.append(f.read(BLOCK_SIZE))
+                else:
+                    f.seek(0, 0)
+                    blocks.append(f.read(block_end_byte))
+                lines_found = blocks[-1].count(b'\n')
+                lines_to_go -= lines_found
+                block_end_byte -= BLOCK_SIZE
+                block_number -= 1
+            all_read_text = b''.join(reversed(blocks))
+            return b'\n'.join(all_read_text.splitlines()[-total_lines_wanted:])
 
-    if token == config.token:
-        f = open(config.agent_log, 'rb')
-        return tail(f)
-    else:
-        return const.TOKEN_ERROR
-    return ""
+        if token == config.token:
+            f = open(config.agent_log, 'rb')
+            return tail(f)
+        else:
+            return const.TOKEN_ERROR
+        return ""
+    except Exception as e:
+        print(e)
+        logging.error("get_poi: " + str(e))
+        return ""
 
 
 @app.route('/getHealthy', methods=['POST'])
@@ -166,6 +176,7 @@ def get_healthy_subgraph():
             return const.TOKEN_ERROR
     except Exception as e:
         print(e)
+        logging.error("get_healthy_subgraph: " + str(e))
         return "ERROR"
 
 
@@ -183,4 +194,5 @@ def restart_agent():
             return const.TOKEN_ERROR
     except Exception as e:
         print(e)
+        logging.error("restart_agent: " + str(e))
         return "ERROR"
