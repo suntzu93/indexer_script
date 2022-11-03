@@ -9,17 +9,13 @@
 
 # Run below background
 
-tmux new -s indexer_script
-python3 main.py
-
-or with pm2
-
 cat <<'EOT' > /root/indexer_script/indexer_script.sh
 #!/bin/bash
-python3 /root/indexer_script/main.py
+tmux new-session -d -s indexer_script 'python3 /root/indexer_script/main.py'
 EOT
 
-pm2 start /root/indexer_script/indexer_script.sh
+chmod +x /root/indexer_script/indexer_script.sh
+./root/indexer_script/indexer_script.sh
 ```
 **config.py**
 
