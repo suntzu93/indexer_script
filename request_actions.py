@@ -31,11 +31,11 @@ def request_update_exe_status(id):
         response = requests.post(const.API_UPDATE_EXE_STATUS, data=params, headers=headers)
         if response.status_code == 200 and response.json()["code"] == 0:
             print("************ UPDATE EXE STATUS SUCCESS ***********\n")
-            logging.info("UPDATE EXE STATUS SUCCESS " + str(id) + ":" + response.json())
+            logging.info("UPDATE EXE STATUS SUCCESS " + str(id))
         else:
             print("************ UPDATE EXE STATUS ERROR ***********\n")
             logging.info("UPDATE EXE STATUS SUCCESS " + str(id) + ":" + response.status_code)
-            logging.info("UPDATE EXE STATUS SUCCESS " + str(id) + ":" + response.json())
+            logging.info("UPDATE EXE STATUS SUCCESS " + str(id) + ":" + str(response.json()["code"]))
     except Exception as e:
         print(str(e))
         logging.error("request_update_exe_status:" + str(e))
@@ -50,11 +50,11 @@ def request_update_time(token):
         response = requests.post(const.API_UPDATE_TIME, data=params, headers=headers)
         if response.status_code == 200 and response.json()["code"] == 0:
             print("************ UPDATE TIME SUCCESS ***********\n")
-            logging.info("UPDATE TIME SUCCESS " + response.json())
+            logging.info("UPDATE TIME SUCCESS ")
         else:
             print("************ UPDATE TIME ERROR ***********\n")
             logging.info("UPDATE TIME ERROR " + str(response.status_code))
-            logging.info("UPDATE TIME ERROR " + response.json())
+            logging.info("UPDATE TIME ERROR " + str(response.json()["code"]))
     except Exception as e:
         print(str(e))
         logging.error("request_update_time:" + str(e))
