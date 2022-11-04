@@ -1,3 +1,6 @@
+# indexer_script
+![Copy of Staking is live](https://user-images.githubusercontent.com/90826754/199955363-0eaa0229-fe54-4f42-a77e-9039a85ae8b9.png)
+
 **Script to execute graph command. Can run on any where, just need to connect indexer-manager !** 
 ```
 1. git clone https://github.com/suntzu93/indexer_script.git
