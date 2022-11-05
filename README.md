@@ -15,11 +15,12 @@ Default Port is 5502, for your endpoint it must be `https` before input to <a hr
 
 cat <<'EOT' > /root/indexer_script/indexer_script.sh
 #!/bin/bash
+tmux kill-session -t indexer_script
 tmux new-session -d -s indexer_script 'python3 /root/indexer_script/main.py'
 EOT
 
 chmod +x /root/indexer_script/indexer_script.sh
-./root/indexer_script/indexer_script.sh
+/root/indexer_script/indexer_script.sh
 
 #For update latest code
 
