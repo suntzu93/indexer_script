@@ -1,5 +1,7 @@
 **Script to execute graph command. Can run on any where, just need to connect indexer-manager !** 
 ```
+
+cd ~
 1. git clone https://github.com/suntzu93/indexer_script.git
 2. cd indexer_script
 3. chmod +X install.sh
@@ -18,6 +20,17 @@ EOT
 
 chmod +x /root/indexer_script/indexer_script.sh
 ./root/indexer_script/indexer_script.sh
+
+#For update latest code
+
+tmux kill-session -t indexer_script
+
+cd ~/indexer_script
+git pull
+
+./indexer_script.sh
+
+
 ```
 **config.py**
 
