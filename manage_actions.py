@@ -211,30 +211,19 @@ def graphman():
         rewindBlock = request.form.get("rewindBlock")
         rewindBlockHash = request.form.get("rewindBlockHash")
         if token == config.token:
-            logging.info(command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + str(rewindBlockHash))
+            logging.info(
+                command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + str(rewindBlockHash))
             graphman_cmd = ""
             if command == const.GRAPHMAN_REASSIGN:
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash} {graphNode}"
             elif command == const.GRAPHMAN_UNASSIGN:
                 # Update decisionBasis to never before remove
-                cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis never"
-                result = subprocess.run([cmd_offchain], shell=True, check=True,
-                                        stdout=subprocess.PIPE,
-                                        universal_newlines=True)
-                output = result.stdout
-                logging.info(cmd_offchain)
-                logging.info(output)
+                update_decision_basic_never(ipfsHash)
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash}"
             elif command == const.GRAPHMAN_REMOVE:
                 # Update decisionBasis to never before remove
-                cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis never"
-                result = subprocess.run([cmd_offchain], shell=True, check=True,
-                                        stdout=subprocess.PIPE,
-                                        universal_newlines=True)
-                output = result.stdout
-                logging.info(cmd_offchain)
-                logging.info(output)
+                update_decision_basic_never(ipfsHash)
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
             elif command == const.GRAPHMAN_REWIND:
@@ -243,8 +232,8 @@ def graphman():
             if len(graphman_cmd) > 0:
                 logging.info("graphman_cmd: " + graphman_cmd)
                 result = subprocess.run([graphman_cmd], shell=True, check=True,
-                                         stdout=subprocess.PIPE,
-                                         universal_newlines=True)
+                                        stdout=subprocess.PIPE,
+                                        universal_newlines=True)
                 output = result.stdout
                 logging.info("output: " + str(output))
             return "OK"
@@ -254,6 +243,17 @@ def graphman():
         print(e)
         logging.error("graphman: " + str(e))
         return "ERROR"
+
+
+def update_decision_basic_never(ipfsHash):
+    cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis never"
+    result = subprocess.run([cmd_offchain], shell=True, check=True,
+                            stdout=subprocess.PIPE,
+                            universal_newlines=True)
+    output = result.stdout
+    logging.info(cmd_offchain)
+    logging.info(output)
+
 
 @app.route('/verify', methods=['POST'])
 def verify():

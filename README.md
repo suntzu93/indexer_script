@@ -6,7 +6,7 @@ cd ~
 2. cd indexer_script
 3. chmod +x install.sh
 4. ./install.sh
-5. Change data in config.py file
+# 5. Change data in config.py file
 6. python3 main.py
 ```
 Default Port is 5502, for your endpoint it must be `https` before input to <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>
