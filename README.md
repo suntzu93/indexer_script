@@ -4,7 +4,7 @@
 cd ~
 1. git clone https://github.com/suntzu93/indexer_script.git
 2. cd indexer_script
-3. chmod +X install.sh
+3. chmod +x install.sh
 4. ./install.sh
 5. Change data in config.py file
 6. python3 main.py

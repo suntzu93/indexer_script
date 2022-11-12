@@ -216,6 +216,15 @@ def graphman():
             if command == const.GRAPHMAN_REASSIGN:
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash} {graphNode}"
             elif command == const.GRAPHMAN_UNASSIGN:
+                # Update decisionBasis to never before remove
+                cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis never"
+                result = subprocess.run([cmd_offchain], shell=True, check=True,
+                                        stdout=subprocess.PIPE,
+                                        universal_newlines=True)
+                output = result.stdout
+                logging.info(cmd_offchain)
+                logging.info(output)
+
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash}"
             elif command == const.GRAPHMAN_REMOVE:
                 # Update decisionBasis to never before remove
