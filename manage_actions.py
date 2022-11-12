@@ -162,14 +162,15 @@ def stream_log():
         return ""
 
 
-@app.route('/getHealthy', methods=['POST'])
+@app.route('/getIndexingStatus', methods=['POST'])
 def get_healthy_subgraph():
     try:
         token = request.form.get("token")
-        subgraphs = request.form.get("subgraphs")
+        # subgraphs = request.form.get("subgraphs")
         if token == config.token:
-            graphql_healthy_subgraph = """
-                            { indexingStatuses(subgraphs: [%s]) { subgraph synced health fatalError {message deterministic block { number }} chains {latestBlock {number} chainHeadBlock {number}}}}""" % subgraphs
+            # graphql_healthy_subgraph = """
+            #                 { indexingStatuses(subgraphs: [%s]) { subgraph synced health node fatalError {message deterministic block { number }} chains {latestBlock {number} chainHeadBlock {number}}}}""" % subgraphs
+            graphql_healthy_subgraph = "{ indexingStatuses { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number}}}}"
             response = requests.post(url=config.indexer_node_rpc,
                                      json={"query": graphql_healthy_subgraph})
             json_data = response.json()
@@ -199,6 +200,42 @@ def restart_agent():
         logging.error("restart_agent: " + str(e))
         return "ERROR"
 
+
+@app.route('/graphman', methods=['POST'])
+def graphman():
+    try:
+        token = request.form.get("token")
+        command = request.form.get("command")
+        ipfsHash = request.form.get("ipfsHash")
+        graphNode = request.form.get("graphNode")
+        rewindBlock = request.form.get("rewindBlock")
+        rewindBlockHash = request.form.get("rewindBlockHash")
+        if token == config.token:
+            logging.info(command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + str(rewindBlockHash))
+            graphman_cmd = ""
+            if command == const.GRAPHMAN_REASSIGN:
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash} {graphNode}"
+            elif command == const.GRAPHMAN_UNASSIGN:
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash}"
+            elif command == const.GRAPHMAN_REMOVE:
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
+            elif command == const.GRAPHMAN_REWIND:
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {rewindBlockHash} {rewindBlock} {ipfsHash}"
+
+            if len(graphman_cmd) > 0:
+                logging.info("graphman_cmd: " + graphman_cmd)
+                result = subprocess.run([graphman_cmd], shell=True, check=True,
+                                         stdout=subprocess.PIPE,
+                                         universal_newlines=True)
+                output = result.stdout
+                logging.info("output: " + str(output))
+            return "OK"
+        else:
+            return const.TOKEN_ERROR
+    except Exception as e:
+        print(e)
+        logging.error("graphman: " + str(e))
+        return "ERROR"
 
 @app.route('/verify', methods=['POST'])
 def verify():

@@ -8,5 +8,7 @@ indexer_graph = ""
 indexer_address = ""
 agent_log = ""
 agent_restart_cmd = ""
+graphman_cli = ""
+graphman_config_file = "graphman_config.toml"
 host = "0.0.0.0"
 port = 5502

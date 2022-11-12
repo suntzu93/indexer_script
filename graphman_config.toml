@@ -1,0 +1,12 @@
+[store]
+[store.primary]
+connection = "postgresql://<username>:<password>@127.0.0.1:5432/<graph-node-db>"
+weight = 1
+pool_size = 10
+
+[chains]
+ingestor = "block_ingestor_node"
+
+[deployment]
+[[deployment.rule]]
+indexers = [ "default" ]
