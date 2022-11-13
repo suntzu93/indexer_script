@@ -11,7 +11,7 @@ cd indexer_script
 chmod +x install.sh
 ./install.sh
 ```
-## 2. Change data in `config.py file` 
+## 2. Change data in `config.py` file 
 ```
 cd ~/indexer_script
 nano config.py
@@ -33,8 +33,8 @@ git pull
 ./run_indexer_script.sh
 ```
 
-
-**config.py**
+## 5. How to change data in `config.py` file with example 
+>**config.py**
 
 |   Attempt                           | #Description                                                                                   |
 |   :---:                             |                         :---:                                                            |
