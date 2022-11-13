@@ -15,8 +15,8 @@ chmod +x install.sh
 ```
 cd ~/indexer_script
 nano config.py
-#edit & save your config.py
-python3 main.py
+nano graphman_config.toml
+#edit & save your config.py and graphman_config.toml
 ```
 ## 3. Run a script
 ```
