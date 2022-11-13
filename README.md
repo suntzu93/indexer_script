@@ -14,7 +14,7 @@ chmod +x install.sh
 ## 2. Change data in `config.py file` 
 ```
 cd ~/indexer_script
-nano config.py file
+nano config.py
 #edit & save your config.py
 python3 main.py
 ```
