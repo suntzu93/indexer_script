@@ -1,33 +1,43 @@
+# indexer_script
+![Copy of Staking is live](https://user-images.githubusercontent.com/90826754/199955363-0eaa0229-fe54-4f42-a77e-9039a85ae8b9.png)
+
 **Script to execute graph command. Can run on any where, just need to connect indexer-manager !** 
-```
 
+## 1. Installation
+```
 cd ~
-1. git clone https://github.com/suntzu93/indexer_script.git
-2. cd indexer_script
-3. chmod +x install.sh
-4. ./install.sh
-# 5. Change data in config.py file
-6. python3 main.py
+git clone https://github.com/suntzu93/indexer_script.git
+cd indexer_script
+chmod +x install.sh
+./install.sh
 ```
-Default Port is 5502, for your endpoint it must be `https` before input to <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>
+## 2. Change data in `config.py` & `graphman_config.toml`
 ```
-# Run below background
-
+cd ~/indexer_script
+nano config.py
+nano graphman_config.toml
+#edit & save your config.py and graphman_config.toml
+```
+## 3. Run a script
+```
+cd ~/indexer_script
 ./run_indexer_script.sh
+#script running below background
+```
+>Default Port is 5502, for your endpoint it must be `https` before input to <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>
 
-#For update latest code
-
+## 4. For update latest code
+```
 cd ~/indexer_script
 git pull
-
 ./run_indexer_script.sh
-
-
 ```
-**config.py**
 
-|       Attempt                           |                                                   #Description                                                   |
-|:---------------------------------------:|:----------------------------------------------------------------------------------------------------------------:|
+## 5. How to change data in `config.py` file with example 
+>**config.py**
+
+|   Attempt                           | #Description                                                                                   |
+|   :---:                             |                         :---:                                                            |
 |                  token                  |    Connect wallet and generate token on <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>    |
 |                 network                 |                                   Choose the right network (mainnet / testnet)                                   |
 |         indexer_management_url          |                                   Indexer management API (default port 18000)                                    |
@@ -62,8 +72,6 @@ port = 5502
 
 ***If your server did not install graph-indexer then follow commands***
 ```
-
-
 npm install -g @graphprotocol/indexer-cli --unsafe-perm=true
 yarn global add @graphprotocol/graph-cli --prefix /usr/local
 
