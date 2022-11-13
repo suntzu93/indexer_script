@@ -11,7 +11,7 @@ cd indexer_script
 chmod +x install.sh
 ./install.sh
 ```
-## 2. Change data in `config.py` file 
+## 2. Change data in `config.py` file `graphman_config.toml
 ```
 cd ~/indexer_script
 nano config.py
