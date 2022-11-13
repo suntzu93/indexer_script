@@ -22,7 +22,7 @@ python3 main.py
 ```
 cd ~/indexer_script
 ./run_indexer_script.sh
-#scriprt running below background
+#script running below background
 ```
 >Default Port is 5502, for your endpoint it must be `https` before input to <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>
 
