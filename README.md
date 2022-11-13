@@ -36,8 +36,8 @@ git pull
 ## 5. How to change data in `config.py` file with example 
 >**config.py**
 
-|   Attempt                           | #Description                                                                                   |
-|   :---:                             |                         :---:                                                            |
+|                 Attempt                 |                                                   #Description                                                   |
+|:---------------------------------------:|:----------------------------------------------------------------------------------------------------------------:|
 |                  token                  |    Connect wallet and generate token on <a href="https://graphindexer.co" target="_blank">graphindexer.io</a>    |
 |                 network                 |                                   Choose the right network (mainnet / testnet)                                   |
 |         indexer_management_url          |                                   Indexer management API (default port 18000)                                    |
@@ -47,7 +47,8 @@ git pull
 |              indexer_graph              |                          indexer cli [Detail](https://github.com/graphprotocol/indexer)                          |
 |             indexer_address             |                                                 Indexer address                                                  |
 |              graphman_cli               |                                                   Graphman cli                                                   |
-|          graphman_config_file           |                                         Graphman config file [Detail](https://github.com/graphprotocol/graph-node/blob/master/docs/config.md)                                          |
+|          graphman_config_file           |      Graphman config file [Detail](https://github.com/graphprotocol/graph-node/blob/master/docs/config.md)       |
+|                rpc_list                 |               To monitor rpc healthy , only support EVM rpc, format ["http://rpc1","http://rpc2"]                |
 |                  host                   |                                     Should be 0.0.0.0 to access from network                                     |
 |                  port                   |                                        Indexer script port (default 5502)                                        |
 
@@ -66,6 +67,7 @@ agent_log = "/root/agent_log.txt"
 agent_restart_cmd = "pm2 restart indexer_agent"
 graphman_cli = "/root/graph-node/build/release/graphman"
 graphman_config_file = "graphman_config.toml"
+rpc_list=["http://127.0.0.1:8545","http://127.0.0.1:8554"]
 host = "0.0.0.0"
 port = 5502
 ```

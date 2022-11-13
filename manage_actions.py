@@ -270,6 +270,63 @@ def update_decision_basic_never(ipfsHash):
     logging.info(output)
 
 
+@app.route('/checkRPCs', methods=['POST'])
+def check_rpc():
+    try:
+        token = request.form.get("token")
+        if token != config.token:
+            return const.TOKEN_ERROR
+
+        if len(config.rpc_list) == 0:
+            return "ERROR"
+
+        listRpcCheckingResult = []
+        for rpc in config.rpc_list:
+            block_number = -1
+            chain_id = -1
+            peer_count = -1
+            try:
+                logging.info("check rpc: " + rpc)
+                playload_eth_blocknumber = {"method": "eth_blockNumber", "params": [], "id": 1, "jsonrpc": "2.0"}
+                headers = {
+                    "content-type": "application/json"
+                }
+                response = requests.post(url=rpc,
+                                         json=playload_eth_blocknumber,
+                                         headers=headers)
+                if response.ok:
+                    response_json = response.json()
+                    block_number = int(response_json["result"], 16)
+                playload_eth_chainid = {"method": "eth_chainId", "params": [], "id": 1, "jsonrpc": "2.0"}
+                response = requests.post(url=rpc,
+                                         json=playload_eth_chainid,
+                                         headers=headers)
+                if response.ok:
+                    response_json = response.json()
+                    chain_id = int(response_json["result"], 16)
+                playload_peer = {"jsonrpc": "2.0", "method": "net_peerCount", "params": [], "id": 67}
+                response = requests.post(url=rpc,
+                                         json=playload_peer,
+                                         headers=headers)
+                if response.ok:
+                    response_json = response.json()
+                    peer_count = int(response_json["result"], 16)
+
+                rpcInfo = {"rpc": rpc, "block_number": block_number, "chain_id": chain_id, "peer_count": peer_count}
+                logging.info("check rpc result: " + json.dumps(rpcInfo))
+                listRpcCheckingResult.append(rpcInfo)
+            except Exception as e:
+                print(e)
+                logging.error("error checking rpc: " + str(e))
+                rpcInfo = {"rpc": rpc, "block_number": block_number, "chain_id": chain_id, "peer_count": peer_count}
+                listRpcCheckingResult.append(rpcInfo)
+        return json.dumps(listRpcCheckingResult)
+    except Exception as e:
+        print(e)
+        logging.error("check_rpc: " + str(e))
+        return "ERROR"
+
+
 @app.route('/verify', methods=['POST'])
 def verify():
     try:
