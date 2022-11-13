@@ -377,3 +377,7 @@ def verify():
         print(e)
         logging.error("verify: " + str(e))
         return "ERROR"
+
+
+if __name__ == '__main__':
+    app.run(host=config.host, port=config.port, debug=True)
