@@ -48,8 +48,6 @@ def cancel_actions():
         action_output = []
         if token == config.token:
             cmd_cancel_actions = f"{config.indexer_graph} indexer actions cancel {actionId} --output=json"
-
-            print("Execute cmd : " + cmd_cancel_actions)
             process = subprocess.run([cmd_cancel_actions], shell=True, check=True,
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
@@ -60,6 +58,49 @@ def cancel_actions():
     except Exception as e:
         print(e)
         logging.error("cancel_actions: " + str(e))
+        return []
+
+
+@app.route('/rules', methods=['POST'])
+def get_rules():
+    try:
+        token = request.form.get("token")
+        action_output = []
+        if token == config.token:
+            cmd_get_rules = f"{config.indexer_graph} indexer rules get all --output=json"
+            logging.info(cmd_get_rules)
+            process = subprocess.run([cmd_get_rules], shell=True, check=True,
+                                     stdout=subprocess.PIPE,
+                                     universal_newlines=True)
+            action_output = process.stdout
+        else:
+            return const.TOKEN_ERROR
+        return action_output
+    except Exception as e:
+        print(e)
+        logging.error("get_actions: " + str(e))
+        return []
+
+
+@app.route('/updateRules', methods=['POST'])
+def update_rules():
+    try:
+        token = request.form.get("token")
+        deployment = request.form.get("deployment")
+        autoRenewal = request.form.get("autoRenewal")
+        decisionBasis = request.form.get("decisionBasis")
+        allocationAmount = request.form.get("allocationAmount")
+        if token == config.token:
+            cmd_update_rules = f"{config.indexer_graph} indexer rules set {deployment} allocationAmount {allocationAmount} autoRenewal {autoRenewal} decisionBasis {decisionBasis}"
+            logging.info(cmd_update_rules)
+            subprocess.run([cmd_update_rules], shell=True, check=True)
+            logging.info(f"Update success autoRenewal for {deployment}")
+        else:
+            return const.TOKEN_ERROR
+        return const.SUCCESS
+    except Exception as e:
+        print(e)
+        logging.error("get_actions: " + str(e))
         return []
 
 
@@ -159,7 +200,7 @@ def stream_log():
     except Exception as e:
         print(e)
         logging.error("get_poi: " + str(e))
-        return ""
+        return const.ERROR
 
 
 @app.route('/getIndexingStatus', methods=['POST'])
@@ -180,7 +221,7 @@ def get_healthy_subgraph():
     except Exception as e:
         print(e)
         logging.error("get_healthy_subgraph: " + str(e))
-        return "ERROR"
+        return const.ERROR
 
 
 @app.route('/restartAgent', methods=['POST'])
@@ -192,13 +233,13 @@ def restart_agent():
 
             print("Execute cmd : " + cmd_restart_agent)
             subprocess.run([cmd_restart_agent], shell=True, check=True)
-            return "OK"
+            return const.SUCCESS
         else:
             return const.TOKEN_ERROR
     except Exception as e:
         print(e)
         logging.error("restart_agent: " + str(e))
-        return "ERROR"
+        return const.ERROR
 
 
 @app.route('/graphman', methods=['POST'])
@@ -251,13 +292,13 @@ def graphman():
                                         universal_newlines=True)
                 output = result.stdout
                 logging.info("output: " + str(output))
-            return "OK"
+            return const.SUCCESS
         else:
             return const.TOKEN_ERROR
     except Exception as e:
         print(e)
         logging.error("graphman: " + str(e))
-        return "ERROR"
+        return const.ERROR
 
 
 def update_decision_basic_never(ipfsHash):
@@ -324,7 +365,7 @@ def check_rpc():
     except Exception as e:
         print(e)
         logging.error("check_rpc: " + str(e))
-        return "ERROR"
+        return const.ERROR
 
 
 @app.route('/verify', methods=['POST'])
@@ -433,7 +474,7 @@ def verify():
     except Exception as e:
         print(e)
         logging.error("verify: " + str(e))
-        return "ERROR"
+        return const.ERROR
 
 
 if __name__ == '__main__':

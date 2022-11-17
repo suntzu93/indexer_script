@@ -17,8 +17,11 @@ headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
 def print_hi():
     print(f'\n\n************* This is a tool that will help the indexer manage allocations on the website '
-          f'*************\n\n')
+          f'*************')
+    print(f'Starting indexer_script version ' + const.VERSION + "\n\n")
+
     logging.basicConfig(filename='indexer_script.log', level=logging.INFO)
+    logging.info("version: " + const.VERSION)
 
 
 def request_update_exe_status(id):
