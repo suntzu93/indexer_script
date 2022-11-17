@@ -55,21 +55,35 @@ git pull
 *example:*
 
 ```
-token = "0x14958542867fc280a3879f23843f389a78d9e32539..."
+# *** Required ***
+token = "0x14958542867fc280a3879f23843f389a78d..."
 network = "testnet"
 indexer_management_url = "http://127.0.0.1:18000"
-indexer_node_rpc = "http://127.0.0.1:8030/graphql"
-indexer_agent_network_subgraph_endpoint = "https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli"
-node_rpc = "https://eth-goerli.g.alchemy.com/v2/<token>"
-indexer_graph = "/indexer/node_modules/@graphprotocol/indexer-cli/bin/graph-indexer"
-indexer_address = "0x4167eb613d784c910f5dc0f3f0515d61ec6ec8df"
-agent_log = "/root/agent_log.txt"
-agent_restart_cmd = "pm2 restart indexer_agent"
-graphman_cli = "/root/graph-node/build/release/graphman"
-graphman_config_file = "graphman_config.toml"
-rpc_list=["http://127.0.0.1:8545","http://127.0.0.1:8554"]
+indexer_graph = "graph"
 host = "0.0.0.0"
 port = 5502
+
+
+# Optional
+
+# For get POI and health of subgraphs
+indexer_node_rpc = "http://127.0.0.1:8030/graphql"
+indexer_agent_network_subgraph_endpoint = "https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-goerli"
+node_rpc = "https://eth-goerli.g.alchemy.com/v2/xxxxx"
+indexer_address = "0x...."
+
+
+# For view agent log and restart agent.
+agent_log = "/root/.pm2/logs/indexer-agent-out.log"
+agent_restart_cmd = "pm2 restart indexer_agent"
+
+# For graphman
+graphman_cli = "/root/graph-node/target/debug/graphman"
+graphman_config_file = "graphman_config.toml"
+
+# For monitor RPCs
+rpc_list = ["http://127.0.0.1:8555","http://127.0.0.1:8545"]
+
 ```
 
 ***If your server did not install graph-indexer then follow commands***
