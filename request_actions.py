@@ -243,4 +243,4 @@ def start_request_actions():
             print(e)
             logging.error("start_request_actions:" + str(e))
 
-        time.sleep(10)
+        time.sleep(20)
