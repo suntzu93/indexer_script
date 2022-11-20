@@ -8,8 +8,7 @@
 cd ~
 git clone https://github.com/suntzu93/indexer_script.git
 cd indexer_script
-chmod +x install.sh
-./install.sh
+wget -O - https://gist.githubusercontent.com/suntzu93/901543b5a37aba66de2373d87d968669/raw/install.sh | bash
 ```
 ## 2. Change data in `config.py` & `graphman_config.toml`
 ```
