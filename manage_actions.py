@@ -14,6 +14,32 @@ CORS(app)
 logging.basicConfig(filename='indexer_script.log', level=logging.INFO)
 
 
+def get_block_hash(block_number):
+    try:
+        blockHex = hex(block_number)
+        playload_blockHash = {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "method": "eth_getBlockByNumber",
+            "params": [str(blockHex), False]
+        }
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json"
+        }
+        responseBlockHash = requests.post(url=config.node_rpc,
+                                          json=playload_blockHash,
+                                          headers=headers)
+        block_hash_data = responseBlockHash.json()
+        if "hash" in block_hash_data["result"]:
+            return block_hash_data["result"]["hash"]
+        return -1
+    except Exception as e:
+        print("get block hash error : " + e)
+        logging.error("get_block_hash: " + str(e))
+        return -1
+
+
 @app.route('/actions', methods=['POST'])
 def get_actions():
     try:
@@ -126,23 +152,7 @@ def get_poi():
         json_data = response.json()
         if response.status_code == 200:
             startBlock = json_data["data"]["epoches"][0]["startBlock"]
-            startBlockHex = hex(startBlock)
-
-            playload_blockHash = {
-                "id": 1,
-                "jsonrpc": "2.0",
-                "method": "eth_getBlockByNumber",
-                "params": [str(startBlockHex), False]
-            }
-            headers = {
-                "accept": "application/json",
-                "content-type": "application/json"
-            }
-            responseBlockHash = requests.post(url=config.node_rpc,
-                                              json=playload_blockHash,
-                                              headers=headers)
-            block_hash_data = responseBlockHash.json()
-            block_hash = block_hash_data["result"]["hash"]
+            block_hash = get_block_hash(startBlock)
 
             proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
                 deployment, block_hash, startBlock, config.indexer_address)
@@ -250,12 +260,10 @@ def graphman():
         ipfsHash = request.form.get("ipfsHash")
         graphNode = request.form.get("graphNode")
         rewindBlock = request.form.get("rewindBlock")
-        rewindBlockHash = request.form.get("rewindBlockHash")
         isOffchain = int(request.form.get("isOffchain"))
         if token == config.token:
             logging.info(
-                command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + str(
-                    rewindBlockHash))
+                command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock))
             graphman_cmd = ""
             if command == const.GRAPHMAN_REASSIGN:
                 # Update decisionBasis to offchain before reassign for offchain subgraph
@@ -283,8 +291,10 @@ def graphman():
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
             elif command == const.GRAPHMAN_REWIND:
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {rewindBlockHash} {rewindBlock} {ipfsHash}"
-
+                block_hash = get_block_hash(int(rewindBlock))
+                if block_hash == -1:
+                    return const.ERROR
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {block_hash} {rewindBlock} {ipfsHash}"
             if len(graphman_cmd) > 0:
                 logging.info("graphman_cmd: " + graphman_cmd)
                 result = subprocess.run([graphman_cmd], shell=True, check=True,
