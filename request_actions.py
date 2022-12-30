@@ -81,6 +81,7 @@ def request_actions(url):
             if responseCode == 0 and len(actions_data) > 0:
                 for action in actions_data:
                     try:
+                        logging.info(action)
                         print("------------------------------")
                         serverId = action["id"]
                         ipfsHash = action["ipfsHash"]
@@ -176,17 +177,11 @@ def request_actions(url):
                             request_update_exe_status(serverId)
                             request_update_time(token)
                     except Exception as e:
-                        print(e)
-                        logging.error("for actions_data: " + str(e))
+                        print("Exception: " + str(e))
+                        logging.error("Exception actions_data: " + str(e))
                         request_update_exe_status(serverId)
                         request_update_time(token)
-                    except subprocess.CalledProcessError as subError:
-                        print(subError)
-                        request_update_exe_status(serverId)
-                        request_update_time(token)
-                        logging.error(
-                            "command '{}' return with error (code {}): {}".format(subError.cmd, subError.returncode,
-                                                                                  subError.output))
+
                 # end for
 
                 if executeCount > 0:
