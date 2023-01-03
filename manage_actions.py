@@ -217,11 +217,14 @@ def stream_log():
 def get_healthy_subgraph():
     try:
         token = request.form.get("token")
-        # subgraphs = request.form.get("subgraphs")
+        subgraphs = request.form.get("subgraphs")
         if token == config.token:
-            # graphql_healthy_subgraph = """
-            #                 { indexingStatuses(subgraphs: [%s]) { subgraph synced health node fatalError {message deterministic block { number }} chains {latestBlock {number} chainHeadBlock {number}}}}""" % subgraphs
-            graphql_healthy_subgraph = "{ indexingStatuses { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number}}}}"
+            if subgraphs in request.form and subgraphs != "all":
+                graphql_healthy_subgraph = """
+                                            { indexingStatuses(subgraphs: [%s]) { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number}}}}""" % subgraphs
+            else:
+                graphql_healthy_subgraph = "{ indexingStatuses { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number}}}}"
+
             response = requests.post(url=config.indexer_node_rpc,
                                      json={"query": graphql_healthy_subgraph})
             json_data = response.json()
