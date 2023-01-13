@@ -110,16 +110,19 @@ def monitor_rpc():
                         check_healthy(behind_block_number, chain_head_block_number, chain_rpc, current_block_number,
                                       your_rpc)
                     else:
-                        message = """Can not fetch chain_id from your rpc : `%s`""" % (
+                        message = """Can not fetch chain_id from your rpc : %s""" % (
                             your_rpc)
                         send_alert_msg(message)
                 except requests.exceptions.Timeout:
-                    message = """Timeout to fetch data from your rpc : `%s`""" % (
+                    message = """Timeout to fetch data from your rpc : %s""" % (
                         your_rpc)
                     send_alert_msg(message)
                 except Exception as e:
                     print(e)
                     logging.error("error checking rpc: " + str(e))
+                    message = """Can not fetch data from your rpc : %s""" % (
+                        your_rpc)
+                    send_alert_msg(message)
 
         if "near" in config.rpc_list and config.rpc_list.get("near"):
             try:
@@ -156,16 +159,16 @@ def monitor_rpc():
 
 def check_healthy(behind_block_number, chain_head_block_number, chain_rpc, current_block_number, rpc):
     if chain_head_block_number != -1 and behind_block_number > config.threshold_block_behind:
-        message = """Your chain `%s` has a problem. 
+        message = """Your chain %s has a problem. 
                                             \n-------------------
-                                            \nYour current blockHeight : `%s`
-                                            \nChainhead blockHeight : `%s`
-                                            \nBlock behind: `%s`""" % (
+                                            \nYour current blockHeight : %s
+                                            \nChainhead blockHeight : %s
+                                            \nBlock behind: %s""" % (
             rpc, str(current_block_number), str(chain_head_block_number),
             str(behind_block_number))
         send_alert_msg(message)
     elif chain_head_block_number == -1:
-        message = """Can not fetch blockHeight for public rpc : `%s`""" % (
+        message = """Can not fetch blockHeight for public rpc : %s""" % (
             chain_rpc)
         send_alert_msg(message)
     else:
@@ -208,3 +211,4 @@ def start_monitor_rpc():
     except Exception as e:
         print(e)
         logging.error("start_monitor_rpc: " + str(e))
+
