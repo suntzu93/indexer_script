@@ -46,7 +46,7 @@ git pull
 |             indexer_address             |                                                 Indexer address                                                  |
 |              graphman_cli               |                                                   Graphman cli                                                   |
 |          graphman_config_file           |      Graphman config file [Detail](https://github.com/graphprotocol/graph-node/blob/master/docs/config.md)       |
-|                rpc_list                 |               To monitor rpc healthy , only support EVM rpc, format ["http://rpc1","http://rpc2"]                |
+|                rpc_list                 |       To monitor rpc healthy , only support EVM rpc, cosmos and near, format ["http://rpc1","http://rpc2"]       |
 |                  host                   |                                     Should be 0.0.0.0 to access from network                                     |
 |                  port                   |                                        Indexer script port (default 5502)                                        |
 
@@ -80,8 +80,25 @@ graphman_cli = "/root/graph-node/target/debug/graphman"
 graphman_config_file = "graphman_config.toml"
 
 # For monitor RPCs
-rpc_list = ["http://127.0.0.1:8555","http://127.0.0.1:8545"]
+# To get chat_id , enter /start in this bot https://t.me/MonitorRpcBot
+chat_id = 1234567
+# notify when your node is 100 blocks slower than chain head
+threshold_block_behind = 100
 
+#Support chain tracking near, cosmos and erc20 chains.
+# List of erc20 chain_ids that support monitor : 1,5,10,56,99,100,122,136,250,42161,42170,42220,43114,1313161554,1666600000
+rpc_list = {
+    "erc20": [
+        "http://127.0.0.1:8555",
+        "http://127.0.0.1:8554",
+    ],
+    "near": [
+        "https://rpc.mainnet.near.org/status"
+    ],
+    "cosmos": [
+        "https://cosmos-rpc.polkachu.com/status"
+    ]
+}
 ```
 
 ***If your server did not install graph-indexer then follow commands***

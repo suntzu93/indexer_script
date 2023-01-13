@@ -335,7 +335,8 @@ def check_rpc():
             return "ERROR"
 
         listRpcCheckingResult = []
-        for rpc in config.rpc_list:
+        # For erc20
+        for rpc in config.rpc_list["erc20"]:
             block_number = -1
             chain_id = -1
             peer_count = -1
