@@ -7,6 +7,7 @@ import logging
 import const
 import json
 import os.path
+import yaml
 
 app = Flask(__name__)
 CORS(app)
@@ -14,25 +15,53 @@ CORS(app)
 logging.basicConfig(filename='indexer_script.log', level=logging.INFO)
 
 
-def get_block_hash(block_number):
+def get_chain_rpc(chain_name):
+    chain_rpcs = {
+        'mainnet': const.ETH_RPC_ENDPOINT,
+        'goerli': const.GOERLI_RPC_ENDPOINT,
+        'optimism': const.OPTIMISM_RPC_ENDPOINT,
+        'bsc': const.BSC_RPC_ENDPOINT,
+        'poa': const.POA_RPC_ENDPOINT,
+        'gnosis': const.GNOSIS_RPC_ENDPOINT,
+        'fuse': const.FUSE_RPC_ENDPOINT,
+        'polygon': const.POLYGON_RPC_ENDPOINT,
+        'fantom': const.FANTOM_RPC_ENDPOINT,
+        'arbitrum-one': const.ARBITRUM_RPC_ENDPOINT,
+        'arbitrum-nova': const.ARBITRUM_NOVA_RPC_ENDPOINT,
+        'celo': const.CELO_RPC_ENDPOINT,
+        'avalanche': const.AVAX_RPC_ENDPOINT,
+        'aurora': const.AURORA_RPC_ENDPOINT,
+        'harmony': const.HARMONY_RPC_ENDPOINT,
+    }
+    return chain_rpcs.get(chain_name, None)
+
+
+def get_block_hash(deployment, block_number):
     try:
-        blockHex = hex(block_number)
-        playload_blockHash = {
-            "id": 1,
-            "jsonrpc": "2.0",
-            "method": "eth_getBlockByNumber",
-            "params": [str(blockHex), False]
-        }
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json"
-        }
-        responseBlockHash = requests.post(url=config.node_rpc,
-                                          json=playload_blockHash,
-                                          headers=headers)
-        block_hash_data = responseBlockHash.json()
-        if "hash" in block_hash_data["result"]:
-            return block_hash_data["result"]["hash"]
+        url_ipfs = "https://ipfs.network.thegraph.com/api/v0/cat?arg=" + deployment
+        response = requests.get(url_ipfs)
+        data = yaml.safe_load(response.content)
+        chain_name = data["dataSources"][0]["network"]
+        chain_rpc = get_chain_rpc(chain_name)
+        if chain_rpc is not None:
+            blockHex = hex(block_number)
+            playload_blockHash = {
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "eth_getBlockByNumber",
+                "params": [str(blockHex), False]
+            }
+            headers = {
+                "accept": "application/json",
+                "content-type": "application/json"
+            }
+            responseBlockHash = requests.post(url=chain_rpc,
+                                              json=playload_blockHash,
+                                              headers=headers)
+            block_hash_data = responseBlockHash.json()
+            if "hash" in block_hash_data["result"]:
+                return block_hash_data["result"]["hash"]
+
         return -1
     except Exception as e:
         print("get block hash error : " + e)
@@ -152,7 +181,7 @@ def get_poi():
         json_data = response.json()
         if response.status_code == 200:
             startBlock = json_data["data"]["epoches"][0]["startBlock"]
-            block_hash = get_block_hash(startBlock)
+            block_hash = get_block_hash(deployment, startBlock)
 
             proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
                 deployment, block_hash, startBlock, config.indexer_address)
@@ -294,7 +323,7 @@ def graphman():
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
             elif command == const.GRAPHMAN_REWIND:
-                block_hash = get_block_hash(int(rewindBlock))
+                block_hash = get_block_hash(ipfsHash, int(rewindBlock))
                 if block_hash == -1:
                     return const.ERROR
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {block_hash} {rewindBlock} {ipfsHash}"
