@@ -8,6 +8,7 @@ import const
 import json
 import os.path
 import yaml
+import pending_reward
 
 app = Flask(__name__)
 CORS(app)
@@ -256,8 +257,11 @@ def get_healthy_subgraph():
 
             response = requests.post(url=config.indexer_node_rpc,
                                      json={"query": graphql_healthy_subgraph})
-            json_data = response.json()
-            return json_data
+            indexing_status = response.json()
+            reward = pending_reward.get_allocations_reward()
+            indexing_status["reward"] = reward
+
+            return json.dumps(indexing_status)
         else:
             return const.TOKEN_ERROR
     except Exception as e:
