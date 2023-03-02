@@ -85,6 +85,13 @@ chat_id = 1234567
 # notify when your node is 100 blocks slower than chain head
 threshold_block_behind = 100
 
+#for monitor query reward
+db_host = "127.0.0.1"
+db_port = 5432
+agent_database = "graph_indexer_agent"
+username = "admin"
+password = "admin"
+
 #Support chain tracking near, cosmos and erc20 chains.
 # List of erc20 chain_ids that support monitor : 1,5,10,56,99,100,122,136,250,42161,42170,42220,43114,1313161554,1666600000
 rpc_list = {
