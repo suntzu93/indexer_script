@@ -9,6 +9,7 @@ import json
 import os.path
 import yaml
 import pending_reward
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -78,7 +79,6 @@ def get_actions():
         token = request.form.get("token")
         # Only support from indexer-agent version > v0.20.5
         limit = request.form.get("limit")
-        action_output = []
         if token == config.token:
             cmd_get_actions = f"{config.indexer_graph} indexer actions get --status {actionStatus} --output=json --limit={limit} "
 
@@ -87,9 +87,9 @@ def get_actions():
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
             action_output = process.stdout
+            return action_output
         else:
             return const.TOKEN_ERROR
-        return action_output
     except Exception as e:
         print(e)
         logging.error("get_actions: " + str(e))

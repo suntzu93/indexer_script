@@ -167,10 +167,10 @@ def check_healthy(behind_block_number, chain_head_block_number, chain_rpc, curre
             rpc, str(current_block_number), str(chain_head_block_number),
             str(behind_block_number))
         send_alert_msg(message)
-    elif chain_head_block_number == -1:
-        message = """Can not fetch blockHeight for public rpc : %s""" % (
-            chain_rpc)
-        send_alert_msg(message)
+    # elif chain_head_block_number == -1:
+    #     message = """Can not fetch blockHeight for public rpc : %s""" % (
+    #         chain_rpc)
+    #     send_alert_msg(message)
     else:
         print("Your chain rpc " + rpc + " is good !")
 
