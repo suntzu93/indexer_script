@@ -170,6 +170,29 @@ def get_poi():
         if token != config.token:
             return const.TOKEN_ERROR
 
+        if config.network == "arbitrum":
+            blockBrokenHex = hex(int(blockBroken))
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            data_eth_getBlockByNumber = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "eth_getBlockByNumber",
+                "params": [
+                    blockBrokenHex,
+                    False
+                ]
+            }
+            response = requests.post(url=const.ARBITRUM_RPC_ENDPOINT,
+                                     headers=headers,
+                                     data=json.dumps(data_eth_getBlockByNumber))
+            if response.status_code == 200:
+                json_data = response.json()
+                l1BlockNumberHex = json_data["result"]["l1BlockNumber"]
+                l1BlockNumber = int(l1BlockNumberHex, 0)
+                blockBroken = l1BlockNumber
+
         graphql_startBlock = """
                 {
                   epoches(where: {startBlock_lt: %s, endBlock_gt: %s}) {
@@ -180,6 +203,7 @@ def get_poi():
         response = requests.post(url=config.indexer_agent_network_subgraph_endpoint,
                                  json={"query": graphql_startBlock % (blockBroken, blockBroken)})
         json_data = response.json()
+        print(json_data)
         if response.status_code == 200:
             startBlock = json_data["data"]["epoches"][0]["startBlock"]
             block_hash = get_block_hash(deployment, startBlock)
