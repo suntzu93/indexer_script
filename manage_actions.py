@@ -191,8 +191,10 @@ def get_poi():
                 json_data = response.json()
                 l1BlockNumberHex = json_data["result"]["l1BlockNumber"]
                 l1BlockNumber = int(l1BlockNumberHex, 0)
-                blockBroken = l1BlockNumber
-
+                if l1BlockNumber > 16083151:
+                    blockBroken = l1BlockNumber
+                else:
+                    blockBroken = 16083152
         graphql_startBlock = """
                 {
                   epoches(where: {startBlock_lt: %s, endBlock_gt: %s}) {
