@@ -374,7 +374,7 @@ def graphman():
 
 
 def update_decision_basic_never(ipfsHash):
-    cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis never"
+    cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis never --network={config.agent_network}"
     result = subprocess.run([cmd_offchain], shell=True, check=True,
                             stdout=subprocess.PIPE,
                             universal_newlines=True)
