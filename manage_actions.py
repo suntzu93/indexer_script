@@ -103,7 +103,7 @@ def cancel_actions():
         token = request.form.get("token")
         action_output = []
         if token == config.token:
-            cmd_cancel_actions = f"{config.indexer_graph} indexer actions cancel {actionId} --output=json"
+            cmd_cancel_actions = f"{config.indexer_graph} indexer actions cancel {actionId} --output=json --network={config.agent_network}"
             process = subprocess.run([cmd_cancel_actions], shell=True, check=True,
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
@@ -123,7 +123,7 @@ def get_rules():
         token = request.form.get("token")
         action_output = []
         if token == config.token:
-            cmd_get_rules = f"{config.indexer_graph} indexer rules get all --output=json"
+            cmd_get_rules = f"{config.indexer_graph} indexer rules get all --output=json --network={config.agent_network}"
             logging.info(cmd_get_rules)
             process = subprocess.run([cmd_get_rules], shell=True, check=True,
                                      stdout=subprocess.PIPE,
@@ -147,7 +147,7 @@ def update_rules():
         decisionBasis = request.form.get("decisionBasis")
         allocationAmount = request.form.get("allocationAmount")
         if token == config.token:
-            cmd_update_rules = f"{config.indexer_graph} indexer rules set {deployment} allocationAmount {allocationAmount} autoRenewal {autoRenewal} decisionBasis {decisionBasis}"
+            cmd_update_rules = f"{config.indexer_graph} indexer rules set {deployment} allocationAmount {allocationAmount} autoRenewal {autoRenewal} decisionBasis {decisionBasis} --network={config.agent_network}"
             logging.info(cmd_update_rules)
             subprocess.run([cmd_update_rules], shell=True, check=True)
             logging.info(f"Update success autoRenewal for {deployment}")
@@ -330,7 +330,7 @@ def graphman():
             if command == const.GRAPHMAN_REASSIGN:
                 # Update decisionBasis to offchain before reassign for offchain subgraph
                 if isOffchain == 1:
-                    cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json"
+                    cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json --network={config.agent_network}"
                     result = subprocess.run([cmd_offchain], shell=True, check=True,
                                             stdout=subprocess.PIPE,
                                             universal_newlines=True)

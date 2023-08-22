@@ -112,9 +112,9 @@ def request_actions(url):
                                 print(" ************************************* ")
                                 print(" Start close this subgraph !")
                                 if poi == 'NULL':
-                                    cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} --output=json"
+                                    cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} --output=json --network={config.agent_network}"
                                 else:
-                                    cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} {poi} true --output=json"
+                                    cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} {poi} true --output=json --network={config.agent_network}"
                                 logging.info(cmd_unallocate_action)
 
                                 print("Execute cmd : " + cmd_unallocate_action)
@@ -127,7 +127,7 @@ def request_actions(url):
                             elif actionId == const.OPEN_ACTION:
                                 print(" ************************************* ")
                                 print(" Start open this subgraph !")
-                                cmd_allocate_action = f"{indexer_graph} indexer actions queue allocate {ipfsHash} {allocatedTokens} --output=json"
+                                cmd_allocate_action = f"{indexer_graph} indexer actions queue allocate {ipfsHash} {allocatedTokens} --output=json --network={config.agent_network}"
                                 logging.info(cmd_allocate_action)
                                 print("Execute cmd : " + cmd_allocate_action)
                                 process = subprocess.run([cmd_allocate_action], shell=True, check=True,
@@ -141,9 +141,9 @@ def request_actions(url):
                                 print(" ************************************* ")
                                 print(" Start re-allocation this subgraph !")
                                 if poi == 'NULL':
-                                    cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} --output=json"
+                                    cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} --output=json --network={config.agent_network}"
                                 else:
-                                    cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} {poi} true --output=json"
+                                    cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} {poi} true --output=json --network={config.agent_network}"
                                 logging.info(cmd_reallocate_action)
 
                                 print("Execute cmd : " + cmd_reallocate_action)
@@ -163,7 +163,7 @@ def request_actions(url):
                         if actionId == const.OFFCHAIN_ACTION:
                             print(" ************************************* ")
                             print(" Start sync offchain this subgraph !")
-                            cmd_offchain = f"{indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json"
+                            cmd_offchain = f"{indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json --network={config.agent_network}"
                             logging.info(cmd_offchain)
 
                             print("Execute cmd : " + cmd_offchain)
@@ -187,7 +187,7 @@ def request_actions(url):
                 if executeCount > 0:
                     try:
                         print(f"=====> Total actions need to approve : {executeCount}")
-                        cmd_approve_all_queue = f"{indexer_graph} indexer actions approve queued --output=json"
+                        cmd_approve_all_queue = f"{indexer_graph} indexer actions approve queued --output=json --network={config.agent_network}"
                         logging.info(cmd_approve_all_queue)
 
                         process = subprocess.run([cmd_approve_all_queue], shell=True, check=True,
