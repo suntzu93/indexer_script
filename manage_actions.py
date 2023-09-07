@@ -356,7 +356,7 @@ def graphman():
                 block_hash = get_block_hash(ipfsHash, int(rewindBlock))
                 if block_hash == -1:
                     return const.ERROR
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {block_hash} {rewindBlock} {ipfsHash}"
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} --block-hash {block_hash} --block-number {rewindBlock} {ipfsHash}"
             if len(graphman_cmd) > 0:
                 logging.info("graphman_cmd: " + graphman_cmd)
                 result = subprocess.run([graphman_cmd], shell=True, check=True,
