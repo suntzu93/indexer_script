@@ -26,7 +26,7 @@ def get_chain_rpc(chain_name):
         'poa': const.POA_RPC_ENDPOINT,
         'gnosis': const.GNOSIS_RPC_ENDPOINT,
         'fuse': const.FUSE_RPC_ENDPOINT,
-        'polygon': const.POLYGON_RPC_ENDPOINT,
+        'matic': const.POLYGON_RPC_ENDPOINT,
         'fantom': const.FANTOM_RPC_ENDPOINT,
         'arbitrum-one': const.ARBITRUM_RPC_ENDPOINT,
         'arbitrum-nova': const.ARBITRUM_NOVA_RPC_ENDPOINT,
@@ -207,7 +207,10 @@ def get_poi():
         json_data = response.json()
         print(json_data)
         if response.status_code == 200:
-            startBlock = json_data["data"]["epoches"][0]["startBlock"]
+            if len(json_data['data']['epoches']) == 0 and 16083151 < blockBroken < 16568309:
+                startBlock = 16083151
+            else:
+                startBlock = json_data["data"]["epoches"][0]["startBlock"]
             block_hash = get_block_hash(deployment, startBlock)
 
             proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
