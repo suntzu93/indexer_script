@@ -1,4 +1,6 @@
-from flask import Flask, request
+import sqlite3
+
+from flask import Flask, request, jsonify
 import subprocess
 import config
 from flask_cors import CORS
@@ -551,6 +553,28 @@ def verify():
         print(e)
         logging.error("verify: " + str(e))
         return const.ERROR
+
+
+@app.route('/api/graft', methods=['GET'])
+def get_graft_data():
+    ipfs = request.args.get('ipfs')
+    conn = sqlite3.connect('subgraph_database.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    SELECT graft_ipfs,graft_block FROM manage_graft WHERE ipfs = ?
+    ''', (ipfs,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    if rows:
+        return jsonify({
+            'ipfs': ipfs,
+            'graft_ipfs': rows[0][0],
+            'graft_block': rows[0][1]
+        })
+    else:
+        return jsonify({'message': 'IPFS hash not found'}), 404
+
 
 
 if __name__ == '__main__':
