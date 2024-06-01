@@ -555,7 +555,7 @@ def verify():
         return const.ERROR
 
 
-@app.route('/get_graft', methods=['GET'])
+@app.route('/getGraft', methods=['GET'])
 def get_graft_data():
     ipfs = request.args.get('ipfs')
     conn = sqlite3.connect('subgraph_database.db')
@@ -575,6 +575,24 @@ def get_graft_data():
     else:
         return jsonify({'message': 'IPFS hash not found'}), 404
 
+
+@app.route('/getAllGraft', methods=['GET'])
+def get_all_grafts():
+    conn = sqlite3.connect('subgraph_database.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT ipfs, graft_ipfs, graft_block FROM manage_graft')
+    rows = cursor.fetchall()
+    conn.close()
+
+    all_data = []
+    for row in rows:
+        all_data.append({
+            'ipfs': row[0],
+            'graft_ipfs': row[1],
+            'graft_block': row[2]
+        })
+
+    return jsonify(all_data)
 
 
 if __name__ == '__main__':
