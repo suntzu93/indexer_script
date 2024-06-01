@@ -555,7 +555,7 @@ def verify():
         return const.ERROR
 
 
-@app.route('/api/graft', methods=['GET'])
+@app.route('/get_graft', methods=['GET'])
 def get_graft_data():
     ipfs = request.args.get('ipfs')
     conn = sqlite3.connect('subgraph_database.db')
