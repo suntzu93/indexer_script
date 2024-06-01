@@ -170,11 +170,15 @@ def is_db_has_data():
 
 def start_manage_graft():
     init_db()
-    # only call for first time
-    if is_db_has_data():
-        subgraphs = fetch_100_subgraphs()
-    else:
-        subgraphs = fetch_subgraphs()
-    print("Total subgraphs : " + str(len(subgraphs)))
-    graft_data = process_subgraphs(subgraphs)
-    save_graft_data(graft_data)
+    while True:
+        # only call for first time
+        if is_db_has_data():
+            subgraphs = fetch_100_subgraphs()
+        else:
+            subgraphs = fetch_subgraphs()
+        print("Total subgraphs : " + str(len(subgraphs)))
+        graft_data = process_subgraphs(subgraphs)
+        save_graft_data(graft_data)
+
+        # sleep 6hrs
+        time.sleep(6 * 60 * 60)
