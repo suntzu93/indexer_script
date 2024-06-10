@@ -208,6 +208,20 @@ def get_poi():
                                  json={"query": graphql_startBlock % (blockBroken, blockBroken)})
         json_data = response.json()
         print(json_data)
+
+        if len(json_data["data"]["epoches"]) == 0 and blockBroken > 16568309:
+            graphql_startBlock = """
+                            {
+                              epoches(first:1 ,where: {startBlock_lt: %s},orderBy: startBlock,orderDirection:desc) {
+                                startBlock
+                              }
+                            }
+                            """
+            response = requests.post(url=config.indexer_agent_network_subgraph_endpoint,
+                                     json={"query": graphql_startBlock % (blockBroken)})
+            json_data = response.json()
+            print(json_data)
+
         if response.status_code == 200:
             if len(json_data['data']['epoches']) == 0 and 16083151 < blockBroken < 16568309:
                 startBlock = 16083151
