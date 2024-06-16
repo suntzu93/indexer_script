@@ -80,6 +80,7 @@ def get_chain_rpc(chain_id):
         43114: const.AVAX_RPC_ENDPOINT,
         1313161554: const.AURORA_RPC_ENDPOINT,
         1666600000: const.HARMONY_RPC_ENDPOINT,
+        8453: const.BASE_RPC_ENDPOINT
     }
     return chain_ids.get(chain_id, chain_id)
 

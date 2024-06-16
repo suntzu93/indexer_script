@@ -41,5 +41,6 @@ OPTIMISM_RPC_ENDPOINT = "https://mainnet.optimism.io"
 FUSE_RPC_ENDPOINT = "https://rpc.fuse.io"
 AURORA_RPC_ENDPOINT = "https://mainnet.aurora.dev"
 HARMONY_RPC_ENDPOINT = "https://rpc.ankr.com/harmony"
+BASE_RPC_ENDPOINT = "https://rpc.ankr.com/base"
 
 VERSION = "1.0.2"
