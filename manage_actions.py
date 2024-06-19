@@ -36,6 +36,7 @@ def get_chain_rpc(chain_name):
         'avalanche': const.AVAX_RPC_ENDPOINT,
         'aurora': const.AURORA_RPC_ENDPOINT,
         'harmony': const.HARMONY_RPC_ENDPOINT,
+        'base': const.BASE_RPC_ENDPOINT,
     }
     return chain_rpcs.get(chain_name, None)
 
