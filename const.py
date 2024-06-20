@@ -42,5 +42,7 @@ FUSE_RPC_ENDPOINT = "https://rpc.fuse.io"
 AURORA_RPC_ENDPOINT = "https://mainnet.aurora.dev"
 HARMONY_RPC_ENDPOINT = "https://rpc.ankr.com/harmony"
 BASE_RPC_ENDPOINT = "https://rpc.ankr.com/base"
+SCROLL_RPC_ENDPOINT = "https://rpc.ankr.com/scroll"
+LINEA_RPC_ENDPOINT = "https://rpc.linea.build"
 
 VERSION = "1.0.2"

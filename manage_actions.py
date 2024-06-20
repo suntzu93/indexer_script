@@ -37,6 +37,8 @@ def get_chain_rpc(chain_name):
         'aurora': const.AURORA_RPC_ENDPOINT,
         'harmony': const.HARMONY_RPC_ENDPOINT,
         'base': const.BASE_RPC_ENDPOINT,
+        'scroll': const.SCROLL_RPC_ENDPOINT,
+        'linea': const.LINEA_RPC_ENDPOINT,
     }
     return chain_rpcs.get(chain_name, None)
 
