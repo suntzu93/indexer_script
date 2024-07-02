@@ -299,9 +299,9 @@ def get_healthy_subgraph():
         if token == config.token:
             if subgraphs in request.form and subgraphs != "all":
                 graphql_healthy_subgraph = """
-                                            { indexingStatuses(subgraphs: [%s]) { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number}}}}""" % subgraphs
+                                            { indexingStatuses(subgraphs: [%s]) { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number} earliestBlock{number}}}}""" % subgraphs
             else:
-                graphql_healthy_subgraph = "{ indexingStatuses { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number}}}}"
+                graphql_healthy_subgraph = "{ indexingStatuses { subgraph synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number} earliestBlock{number}}}}"
 
             response = requests.post(url=config.indexer_node_rpc,
                                      json={"query": graphql_healthy_subgraph})
