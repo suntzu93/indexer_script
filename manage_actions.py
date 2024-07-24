@@ -45,13 +45,9 @@ def get_chain_rpc(chain_name):
     return chain_rpcs.get(chain_name, None)
 
 
-def get_block_hash(deployment, block_number):
+def get_block_hash(deployment, block_number, network):
     try:
-        url_ipfs = "https://ipfs.network.thegraph.com/api/v0/cat?arg=" + deployment
-        response = requests.get(url_ipfs)
-        data = yaml.safe_load(response.content)
-        chain_name = data["dataSources"][0]["network"]
-        chain_rpc = get_chain_rpc(chain_name)
+        chain_rpc = get_chain_rpc(network)
         if chain_rpc is not None:
             blockHex = hex(block_number)
             playload_blockHash = {
@@ -73,7 +69,7 @@ def get_block_hash(deployment, block_number):
 
         return -1
     except Exception as e:
-        print("get block hash error : " + e)
+        print("get block hash error : " + str(e))
         logging.error("get_block_hash: " + str(e))
         return -1
 
@@ -173,6 +169,7 @@ def get_poi():
         token = request.form.get("token")
         deployment = request.form.get("deployment")
         blockBroken = request.form.get("blockBroken")
+        network = request.form.get("network")
         action_output = "NO VALID POI"
         if token != config.token:
             return const.TOKEN_ERROR
@@ -232,7 +229,7 @@ def get_poi():
                 startBlock = 16083151
             else:
                 startBlock = json_data["data"]["epoches"][0]["startBlock"]
-            block_hash = get_block_hash(deployment, startBlock)
+            block_hash = get_block_hash(deployment, startBlock, network)
 
             proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
                 deployment, block_hash, startBlock, config.indexer_address)
@@ -347,9 +344,10 @@ def graphman():
         graphNode = request.form.get("graphNode")
         rewindBlock = request.form.get("rewindBlock")
         isOffchain = int(request.form.get("isOffchain"))
+        network = request.form.get("network")
         if token == config.token:
             logging.info(
-                command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock))
+                command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + network)
             graphman_cmd = ""
             if command == const.GRAPHMAN_REASSIGN:
                 # Update decisionBasis to offchain before reassign for offchain subgraph
@@ -377,7 +375,7 @@ def graphman():
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
             elif command == const.GRAPHMAN_REWIND:
-                block_hash = get_block_hash(ipfsHash, int(rewindBlock))
+                block_hash = get_block_hash(ipfsHash, int(rewindBlock), network)
                 if block_hash == -1:
                     return const.ERROR
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} --block-hash {block_hash} --block-number {rewindBlock} {ipfsHash}"
