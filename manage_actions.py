@@ -344,7 +344,7 @@ def graphman():
         graphNode = request.form.get("graphNode")
         rewindBlock = request.form.get("rewindBlock")
         isOffchain = int(request.form.get("isOffchain"))
-        network = request.form.get("network")
+        network = request.form.get("networkId")
         if token == config.token:
             logging.info(
                 command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + network)
