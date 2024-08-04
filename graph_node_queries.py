@@ -16,24 +16,9 @@ def get_subgraph_sizes():
         
         query = """
         SELECT 
-            ds.name as deployment_schema,
             sg.name as deployment_name,
-            sd.id as deployment_id,
-            substring(sm.repository,20,31) as git_repo,
-            sda.node_id as node_id,
-            sd.health as sub_health,
-            sd.failed as sub_failed,
-            sd.synced as sub_sync,
-            sd.latest_ethereum_block_number as last_block,
-            sd.entity_count as sub_entity,
-            size.total_bytes as size_total, 
-            size.total_bytes as size_total_bytes,
-            sd.reorg_count as reorg_count, 
-            sd.current_reorg_depth as curr_reorg_count, 
-            sd.max_reorg_depth as max_reorg
+            size.total_bytes as size_total_bytes
         FROM subgraphs."subgraph_deployment" as sd
-        left join subgraphs."subgraph_manifest" as sm on (sm.id = sd.id)
-        left join subgraphs."subgraph_deployment_assignment" as sda on (sda.id = sd.id)
         left join subgraphs."subgraph_version" as sv on (sv.deployment = sd.deployment)
         left join subgraphs."subgraph" as sg on (sv.id in (sg.current_version, sg.pending_version))
         left join public."deployment_schemas" as ds on (ds.subgraph = sd.deployment)
