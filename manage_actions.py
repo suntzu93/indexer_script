@@ -12,6 +12,7 @@ import os.path
 import yaml
 import pending_reward
 import re
+import graph_node_queries
 
 app = Flask(__name__)
 CORS(app)
@@ -610,6 +611,23 @@ def get_all_grafts():
         })
 
     return jsonify(all_data)
+
+
+@app.route('/getSubgraphSize', methods=['POST'])
+def get_subgraph_size():
+    try:
+        token = request.form.get("token")
+        if token != config.token:
+            return const.TOKEN_ERROR
+
+        subgraph_sizes = graph_node_queries.get_subgraph_sizes()
+        if subgraph_sizes is None:
+            return jsonify({"error": "Failed to retrieve subgraph sizes"}), 500
+
+        return jsonify(subgraph_sizes)
+    except Exception as e:
+        logging.error(f"Error in get_subgraph_size: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
