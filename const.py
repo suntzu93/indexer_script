@@ -17,6 +17,8 @@ GRAPHMAN_REASSIGN = "reassign"
 GRAPHMAN_UNASSIGN = "unassign"
 GRAPHMAN_REMOVE = "remove"
 GRAPHMAN_REWIND = "rewind"
+GRAPHMAN_PAUSE = "pause"
+GRAPHMAN_RESUME = "resume"
 
 # Error
 
