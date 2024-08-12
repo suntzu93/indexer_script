@@ -368,7 +368,7 @@ def graphman():
                 if isOffchain == 1:
                     update_decision_basic_never(ipfsHash)
 
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash}"
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} reassign {ipfsHash} removed"
             elif command == const.GRAPHMAN_REMOVE:
                 # Update decisionBasis to never before remove for offchain subgraph
                 if isOffchain == 1:
