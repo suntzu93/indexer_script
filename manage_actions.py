@@ -364,15 +364,11 @@ def graphman():
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash} {graphNode}"
             elif command == const.GRAPHMAN_UNASSIGN:
-                # Update decisionBasis to never before unassign for offchain subgraph
-                if isOffchain == 1:
-                    update_decision_basic_never(ipfsHash)
+                update_decision_basic_never(ipfsHash)
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} reassign {ipfsHash} removed"
             elif command == const.GRAPHMAN_REMOVE:
-                # Update decisionBasis to never before remove for offchain subgraph
-                if isOffchain == 1:
-                    update_decision_basic_never(ipfsHash)
+                update_decision_basic_never(ipfsHash)
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
             elif command == const.GRAPHMAN_REWIND:
@@ -381,8 +377,18 @@ def graphman():
                     return const.ERROR
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} --block-hash {block_hash} --block-number {rewindBlock} {ipfsHash}"
             elif command == const.GRAPHMAN_PAUSE:
+                update_decision_basic_never(ipfsHash)
+
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} pause {ipfsHash}"
             elif command == const.GRAPHMAN_RESUME:
+                cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json --network={config.agent_network}"
+                result = subprocess.run([cmd_offchain], shell=True, check=True,
+                                        stdout=subprocess.PIPE,
+                                        universal_newlines=True)
+                output = result.stdout
+                logging.info(cmd_offchain)
+                logging.info(output)
+
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
             
             if len(graphman_cmd) > 0:
