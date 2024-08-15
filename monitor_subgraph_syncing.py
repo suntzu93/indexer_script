@@ -54,7 +54,7 @@ def get_ipfs_hashes(allocations: List[Dict]) -> List[str]:
     query = f'''
     {{
       indexer(id:"{config.indexer_address.lower()}") {{
-        allocations {{
+        allocations(first:1000) {{
           id
           subgraphDeployment {{
             ipfsHash
