@@ -104,43 +104,34 @@ def save_fees_data():
             logging.info(f"Retrieved IPFS hashes for {len(ipfs_hash_map)} allocations")
             
             current_time = int(time.time())
+            ten_minutes_ago = current_time - 600
 
             conn = sqlite3.connect('fees_database.db')
             cursor = conn.cursor()
 
-            for alloc in allocations:
-                ipfs_hash = ipfs_hash_map.get(alloc["id"].lower(), "Unknown")
-                
-                cursor.execute('''
-                SELECT fees FROM QueryFees
-                WHERE allocationId = ?
-                ORDER BY timestamp DESC
-                LIMIT 1
-                ''', (alloc["id"],))
-                
-                result = cursor.fetchone()
-                
-                if result:
-                    old_fees = result[0]
-                    new_fees = alloc["fees"]
-                    fee_difference = new_fees - old_fees
+            # Check if data has been inserted in the last 10 minutes
+            cursor.execute('''
+            SELECT COUNT(*) FROM QueryFees WHERE timestamp >= ?
+            ''', (ten_minutes_ago,))
+            recent_inserts = cursor.fetchone()[0]
+
+            if recent_inserts > 0:
+                logging.info("Data has been inserted in the last 10 minutes, skipping this cycle")
+            else:
+                for alloc in allocations:
+                    ipfs_hash = ipfs_hash_map.get(alloc["id"].lower(), "Unknown")
                     
-                    if fee_difference > 0:
-                        logging.info(f"Inserting fee difference for allocation {alloc['id']}: {fee_difference}")
-                        cursor.execute('''
-                        INSERT INTO QueryFees (ipfsHash, allocationId, fees, timestamp)
-                        VALUES (?, ?, ?, ?)
-                        ''', (ipfs_hash, alloc["id"], fee_difference, current_time))
-                else:
+                    # Insert new fees directly
                     logging.info(f"Inserting new allocation {alloc['id']} with fees: {alloc['fees']}")
                     cursor.execute('''
                     INSERT INTO QueryFees (ipfsHash, allocationId, fees, timestamp)
                     VALUES (?, ?, ?, ?)
                     ''', (ipfs_hash, alloc["id"], alloc["fees"], current_time))
 
-            conn.commit()
+                conn.commit()
+                logging.info(f"Saved fees data for {len(allocations)} allocations")
+
             conn.close()
-            logging.info(f"Saved fees data for {len(allocations)} allocations")
 
             # Sleep for 10 minutes
             logging.info("Sleeping for 10 minutes before next cycle")
