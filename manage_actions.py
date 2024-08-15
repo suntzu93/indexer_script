@@ -13,6 +13,7 @@ import yaml
 import pending_reward
 import re
 import graph_node_queries
+import query_fees_tracker
 
 app = Flask(__name__)
 CORS(app)
@@ -642,4 +643,5 @@ def get_subgraph_size():
 
 
 if __name__ == '__main__':
+    query_fees_tracker.add_get_query_fees_route(app)
     app.run(host=config.host, port=config.port, debug=True)
