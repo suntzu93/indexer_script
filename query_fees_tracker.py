@@ -20,7 +20,8 @@ def create_fees_table():
         ipfsHash TEXT,
         allocationId TEXT,
         fees REAL,
-        timestamp INTEGER
+        timestamp INTEGER,
+        network TEXT
     )
     ''')
     conn.commit()
@@ -51,7 +52,7 @@ def get_allocations_with_fees() -> List[Dict]:
         logging.error(f"Error getting allocations: {e}")
         return []
 
-def get_ipfs_hashes(allocations: List[Dict]) -> Dict[str, str]:
+def get_ipfs_hashes(allocations: List[Dict]) -> Dict[str, Dict[str, str]]:
     logging.info("Getting IPFS hashes...")
     ipfs_hash_map = {}
     skip = 0
@@ -63,6 +64,9 @@ def get_ipfs_hashes(allocations: List[Dict]) -> Dict[str, str]:
               id
               subgraphDeployment {{
                 ipfsHash
+                manifest{{
+                    network
+                }}
               }}
             }}
           }}
@@ -77,8 +81,10 @@ def get_ipfs_hashes(allocations: List[Dict]) -> Dict[str, str]:
             if not allocations_data:
                 break
             
-            ipfs_hash_map.update({alloc["id"].lower(): alloc["subgraphDeployment"]["ipfsHash"] 
-                                  for alloc in allocations_data})
+            ipfs_hash_map.update({alloc["id"].lower(): {
+                "ipfsHash": alloc["subgraphDeployment"]["ipfsHash"],
+                "network": alloc["subgraphDeployment"]["manifest"]["network"]
+            } for alloc in allocations_data})
             
             skip += len(allocations_data)
             logging.info(f"Fetched {skip} allocations so far")
@@ -104,12 +110,12 @@ def save_fees_data():
             logging.info(f"Retrieved IPFS hashes for {len(ipfs_hash_map)} allocations")
             
             current_time = int(time.time())
-            ten_minutes_ago = current_time - 600
+            ten_minutes_ago = current_time - 540
 
             conn = sqlite3.connect('fees_database.db')
             cursor = conn.cursor()
 
-            # Check if data has been inserted in the last 10 minutes
+            # Check if data has been inserted in the last 9 minutes
             cursor.execute('''
             SELECT COUNT(*) FROM QueryFees WHERE timestamp >= ?
             ''', (ten_minutes_ago,))
@@ -119,14 +125,14 @@ def save_fees_data():
                 logging.info("Data has been inserted in the last 10 minutes, skipping this cycle")
             else:
                 for alloc in allocations:
-                    ipfs_hash = ipfs_hash_map.get(alloc["id"].lower(), "Unknown")
+                    alloc_data = ipfs_hash_map.get(alloc["id"].lower(), {"ipfsHash": "Unknown", "network": "Unknown"})
                     
                     # Insert new fees directly
                     logging.info(f"Inserting new allocation {alloc['id']} with fees: {alloc['fees']}")
                     cursor.execute('''
-                    INSERT INTO QueryFees (ipfsHash, allocationId, fees, timestamp)
-                    VALUES (?, ?, ?, ?)
-                    ''', (ipfs_hash, alloc["id"], alloc["fees"], current_time))
+                    INSERT INTO QueryFees (ipfsHash, allocationId, fees, timestamp, network)
+                    VALUES (?, ?, ?, ?, ?)
+                    ''', (alloc_data["ipfsHash"], alloc["id"], alloc["fees"], current_time, alloc_data["network"]))
 
                 conn.commit()
                 logging.info(f"Saved fees data for {len(allocations)} allocations")
@@ -183,7 +189,8 @@ def get_query_fees():
                 "ipfsHash": row[1],
                 "allocationId": row[2],
                 "fees": row[3],
-                "timestamp": row[4]
+                "timestamp": row[4],
+                "network": row[5]
             }
             for row in rows
         ]
