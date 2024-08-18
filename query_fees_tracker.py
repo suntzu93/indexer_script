@@ -159,6 +159,7 @@ def get_query_fees():
         allocation_id = request.form.get('allocationId')
         start_time = request.form.get('startTime')
         end_time = request.form.get('endTime')
+        network = request.form.get('network')  # New parameter for network filter
 
         conn = sqlite3.connect('fees_database.db')
         cursor = conn.cursor()
@@ -178,6 +179,9 @@ def get_query_fees():
         if end_time:
             query += " AND timestamp <= ?"
             params.append(int(end_time))
+        if network:  # New condition for network filter
+            query += " AND network = ?"
+            params.append(network)
 
         cursor.execute(query, params)
         rows = cursor.fetchall()
