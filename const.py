@@ -19,6 +19,7 @@ GRAPHMAN_REMOVE = "remove"
 GRAPHMAN_REWIND = "rewind"
 GRAPHMAN_PAUSE = "pause"
 GRAPHMAN_RESUME = "resume"
+GRAPHMAN_STATS_SHOW = "stats show"  # Added this new line
 
 # Error
 

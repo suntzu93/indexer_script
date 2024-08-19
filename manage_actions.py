@@ -391,6 +391,8 @@ def graphman():
                 logging.info(output)
 
                 graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
+            elif command == const.GRAPHMAN_STATS_SHOW:
+                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
             
             if len(graphman_cmd) > 0:
                 logging.info("graphman_cmd: " + graphman_cmd)
@@ -399,7 +401,46 @@ def graphman():
                                         universal_newlines=True)
                 output = result.stdout
                 logging.info("output: " + str(output))
-            return const.SUCCESS
+                
+                if command == const.GRAPHMAN_STATS_SHOW:
+                    # Parse the output for stats show command
+                    lines = output.strip().split('\n')
+                    data = []
+                    account_like_tables = set()
+                    
+                    for line in lines[2:]:  # Skip the header lines
+                        if line.startswith('  (a):'):
+                            break
+                        if line.strip():
+                            parts = line.split('|')
+                            if len(parts) == 4:
+                                table_info = parts[0].strip().rsplit(None, 1)
+                                table_name = table_info[0].strip()
+                                account_like = '(a)' in table_info
+                                entities = int(parts[1].strip().replace(',', ''))
+                                versions = int(parts[2].strip().replace(',', ''))
+                                ratio = float(parts[3].strip().rstrip('%'))
+                                
+                                if account_like:
+                                    account_like_tables.add(table_name)
+                                
+                                data.append({
+                                    "table": table_name,
+                                    "entities": entities,
+                                    "versions": versions,
+                                    "ratio": ratio,
+                                    "account_like": account_like
+                                })
+                    
+                    return jsonify({
+                        "status": "success", 
+                        "data": data,
+                        "account_like_tables": list(account_like_tables)
+                    })
+                else:
+                    return const.SUCCESS
+            else:
+                return const.ERROR
         else:
             return const.TOKEN_ERROR
     except Exception as e:
