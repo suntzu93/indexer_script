@@ -348,7 +348,7 @@ def graphman():
     network = request.form.get("networkId")
     if token == config.token:
         logging.info(
-            command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + network)
+            f"{command or ''} {ipfsHash or ''} {str(graphNode) or ''} {str(rewindBlock) or ''} {network or ''}")
         graphman_cmd = ""
         if command == const.GRAPHMAN_REASSIGN:
             # Update decisionBasis to offchain before reassign for offchain subgraph
