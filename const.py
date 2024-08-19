@@ -19,7 +19,8 @@ GRAPHMAN_REMOVE = "remove"
 GRAPHMAN_REWIND = "rewind"
 GRAPHMAN_PAUSE = "pause"
 GRAPHMAN_RESUME = "resume"
-GRAPHMAN_STATS_SHOW = "stats show"  # Added this new line
+GRAPHMAN_STATS_SHOW = "stats show"
+GRAPHMAN_STATS_ACCOUNT_LIKE = "stats account-like"  # Added this new line
 
 # Error
 
