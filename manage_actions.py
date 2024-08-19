@@ -339,131 +339,110 @@ def restart_agent():
 
 @app.route('/graphman', methods=['POST'])
 def graphman():
-    try:
-        token = request.form.get("token")
-        command = request.form.get("command")
-        ipfsHash = request.form.get("ipfsHash")
-        graphNode = request.form.get("graphNode")
-        rewindBlock = request.form.get("rewindBlock")
-        isOffchain = int(request.form.get("isOffchain"))
-        network = request.form.get("networkId")
-        if token == config.token:
-            logging.info(
-                command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + network)
-            graphman_cmd = ""
-            if command == const.GRAPHMAN_REASSIGN:
-                # Update decisionBasis to offchain before reassign for offchain subgraph
-                if isOffchain == 1:
-                    cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json --network={config.agent_network}"
-                    result = subprocess.run([cmd_offchain], shell=True, check=True,
-                                            stdout=subprocess.PIPE,
-                                            universal_newlines=True)
-                    output = result.stdout
-                    print(output)
-                    logging.info(cmd_offchain)
-                    logging.info(output)
-
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash} {graphNode}"
-            elif command == const.GRAPHMAN_UNASSIGN:
-                update_decision_basic_never(ipfsHash)
-
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} reassign {ipfsHash} removed"
-            elif command == const.GRAPHMAN_REMOVE:
-                update_decision_basic_never(ipfsHash)
-
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
-            elif command == const.GRAPHMAN_REWIND:
-                block_hash = get_block_hash(ipfsHash, int(rewindBlock), network)
-                if block_hash == -1:
-                    return const.ERROR
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} --block-hash {block_hash} --block-number {rewindBlock} {ipfsHash}"
-            elif command == const.GRAPHMAN_PAUSE:
-                update_decision_basic_never(ipfsHash)
-
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} pause {ipfsHash}"
-            elif command == const.GRAPHMAN_RESUME:
+    token = request.form.get("token")
+    command = request.form.get("command")
+    ipfsHash = request.form.get("ipfsHash")
+    graphNode = request.form.get("graphNode")
+    rewindBlock = request.form.get("rewindBlock")
+    isOffchain = int(request.form.get("isOffchain"))
+    network = request.form.get("networkId")
+    if token == config.token:
+        logging.info(
+            command + " " + ipfsHash + " " + str(graphNode) + " " + str(rewindBlock) + " " + network)
+        graphman_cmd = ""
+        if command == const.GRAPHMAN_REASSIGN:
+            # Update decisionBasis to offchain before reassign for offchain subgraph
+            if isOffchain == 1:
                 cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json --network={config.agent_network}"
                 result = subprocess.run([cmd_offchain], shell=True, check=True,
                                         stdout=subprocess.PIPE,
                                         universal_newlines=True)
                 output = result.stdout
+                print(output)
                 logging.info(cmd_offchain)
                 logging.info(output)
 
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
-            elif command == const.GRAPHMAN_STATS_SHOW:
-                graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
-            
-            if len(graphman_cmd) > 0:
-                logging.info("graphman_cmd: " + graphman_cmd)
-                result = subprocess.run([graphman_cmd], shell=True, check=True,
-                                        stdout=subprocess.PIPE,
-                                        universal_newlines=True)
-                output = result.stdout
-                logging.info("output: " + str(output))
-                
-                if command == const.GRAPHMAN_STATS_SHOW:
-                    # Parse the output for stats show command
-                    lines = output.strip().split('\n')
-                    data = []
-                    account_like_tables = set()
-                    
-                    for line in lines[2:]:  # Skip the header lines
-                        if line.startswith('  (a):'):
-                            break
-                        if line.strip():
-                            parts = line.split('|')
-                            if len(parts) == 4:
-                                table_info = parts[0].strip().rsplit(None, 1)
-                                table_name = table_info[0].strip()
-                                account_like = '(a)' in table_info
-                                
-                                try:
-                                    entities = int(parts[1].strip().replace(',', '') or 0)
-                                    versions = int(parts[2].strip().replace(',', '') or 0)
-                                    ratio = float(parts[3].strip().rstrip('%') or 0)
-                                except ValueError as e:
-                                    logging.error(f"Error parsing values: {e}")
-                                    entities, versions, ratio = 0, 0, 0.0
-                                
-                                if account_like:
-                                    account_like_tables.add(table_name)
-                                
-                                data.append({
-                                    "table": table_name,
-                                    "entities": entities,
-                                    "versions": versions,
-                                    "ratio": ratio,
-                                    "account_like": account_like
-                                })
-                    
-                    return jsonify({
-                        "status": "success", 
-                        "data": data,
-                        "account_like_tables": list(account_like_tables)
-                    })
-                else:
-                    return const.SUCCESS
-            else:
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} {ipfsHash} {graphNode}"
+        elif command == const.GRAPHMAN_UNASSIGN:
+            update_decision_basic_never(ipfsHash)
+
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} reassign {ipfsHash} removed"
+        elif command == const.GRAPHMAN_REMOVE:
+            update_decision_basic_never(ipfsHash)
+
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} drop --force  {ipfsHash}"
+        elif command == const.GRAPHMAN_REWIND:
+            block_hash = get_block_hash(ipfsHash, int(rewindBlock), network)
+            if block_hash == -1:
                 return const.ERROR
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} {command} --block-hash {block_hash} --block-number {rewindBlock} {ipfsHash}"
+        elif command == const.GRAPHMAN_PAUSE:
+            update_decision_basic_never(ipfsHash)
+
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} pause {ipfsHash}"
+        elif command == const.GRAPHMAN_RESUME:
+            cmd_offchain = f"{config.indexer_graph} indexer rules set {ipfsHash} decisionBasis offchain --output=json --network={config.agent_network}"
+            result = subprocess.run([cmd_offchain], shell=True, check=True,
+                                    stdout=subprocess.PIPE,
+                                    universal_newlines=True)
+            output = result.stdout
+            logging.info(cmd_offchain)
+            logging.info(output)
+
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
+        elif command == const.GRAPHMAN_STATS_SHOW:
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
+        
+        if len(graphman_cmd) > 0:
+            logging.info("graphman_cmd: " + graphman_cmd)
+            result = subprocess.run([graphman_cmd], shell=True, check=True,
+                                    stdout=subprocess.PIPE,
+                                    universal_newlines=True)
+            output = result.stdout
+            logging.info("output: " + str(output))
+            
+            if command == const.GRAPHMAN_STATS_SHOW:
+                # Parse the output for stats show command
+                lines = output.strip().split('\n')
+                data = []
+                account_like_tables = set()
+                
+                for line in lines[2:]:  # Skip the header lines
+                    if line.startswith('  (a):'):
+                        break
+                    if line.strip():
+                        parts = line.split('|')
+                        if len(parts) == 4:
+                            table_info = parts[0].strip().rsplit(None, 1)
+                            table_name = table_info[0].strip()
+                            account_like = '(a)' in table_info
+                            
+                            entities = int(parts[1].strip().replace(',', '') or 0)
+                            versions = int(parts[2].strip().replace(',', '') or 0)
+                            ratio = float(parts[3].strip().rstrip('%') or 0)
+                            
+                            if account_like:
+                                account_like_tables.add(table_name)
+                            
+                            data.append({
+                                "table": table_name,
+                                "entities": entities,
+                                "versions": versions,
+                                "ratio": ratio,
+                                "account_like": account_like
+                            })
+                
+                return jsonify({
+                    "status": "success", 
+                    "data": data,
+                    "account_like_tables": list(account_like_tables)
+                })
+            else:
+                return const.SUCCESS
         else:
-            return const.TOKEN_ERROR
-    except subprocess.CalledProcessError as e:
-        print(f"Subprocess error: {e}")
-        logging.error(f"Subprocess error in graphman: {e}")
-        return jsonify({"status": "error", "message": f"Subprocess error: {e}"})
-    except requests.RequestException as e:
-        print(f"Request error: {e}")
-        logging.error(f"Request error in graphman: {e}")
-        return jsonify({"status": "error", "message": f"Request error: {e}"})
-    except json.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
-        logging.error(f"JSON decode error in graphman: {e}")
-        return jsonify({"status": "error", "message": f"JSON decode error: {e}"})
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        logging.error(f"Unexpected error in graphman: {e}")
-        return jsonify({"status": "error", "message": f"Unexpected error: {e}"})
+            return const.ERROR
+    else:
+        return const.TOKEN_ERROR
 
 
 def update_decision_basic_never(ipfsHash):
