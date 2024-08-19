@@ -417,9 +417,14 @@ def graphman():
                                 table_info = parts[0].strip().rsplit(None, 1)
                                 table_name = table_info[0].strip()
                                 account_like = '(a)' in table_info
-                                entities = int(parts[1].strip().replace(',', ''))
-                                versions = int(parts[2].strip().replace(',', ''))
-                                ratio = float(parts[3].strip().rstrip('%'))
+                                
+                                try:
+                                    entities = int(parts[1].strip().replace(',', '') or 0)
+                                    versions = int(parts[2].strip().replace(',', '') or 0)
+                                    ratio = float(parts[3].strip().rstrip('%') or 0)
+                                except ValueError as e:
+                                    logging.error(f"Error parsing values: {e}")
+                                    entities, versions, ratio = 0, 0, 0.0
                                 
                                 if account_like:
                                     account_like_tables.add(table_name)
