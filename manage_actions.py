@@ -443,10 +443,22 @@ def graphman():
                 return const.ERROR
         else:
             return const.TOKEN_ERROR
+    except subprocess.CalledProcessError as e:
+        print(f"Subprocess error: {e}")
+        logging.error(f"Subprocess error in graphman: {e}")
+        return jsonify({"status": "error", "message": f"Subprocess error: {e}"})
+    except requests.RequestException as e:
+        print(f"Request error: {e}")
+        logging.error(f"Request error in graphman: {e}")
+        return jsonify({"status": "error", "message": f"Request error: {e}"})
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        logging.error(f"JSON decode error in graphman: {e}")
+        return jsonify({"status": "error", "message": f"JSON decode error: {e}"})
     except Exception as e:
-        print(e)
-        logging.error("graphman: " + str(e))
-        return const.ERROR
+        print(f"Unexpected error: {e}")
+        logging.error(f"Unexpected error in graphman: {e}")
+        return jsonify({"status": "error", "message": f"Unexpected error: {e}"})
 
 
 def update_decision_basic_never(ipfsHash):
