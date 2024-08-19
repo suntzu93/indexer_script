@@ -347,12 +347,11 @@ def graphman():
         rewindBlock = request.form.get("rewindBlock")
         isOffchain = int(request.form.get("isOffchain", 0))
         network = request.form.get("networkId")
-        tableName = request.form.get("tableName")  # New parameter for account-like command
         
         if token != config.token:
             return const.TOKEN_ERROR
 
-        logging.info(f"{command or ''} {ipfsHash or ''} {str(graphNode) or ''} {str(rewindBlock) or ''} {network or ''} {tableName or ''}")
+        logging.info(f"{command or ''} {ipfsHash or ''} {str(graphNode) or ''} {str(rewindBlock) or ''} {network or ''}")
         
         graphman_cmd = ""
         
@@ -404,10 +403,6 @@ def graphman():
                 return const.ERROR
 
             graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
-        elif command == const.GRAPHMAN_STATS_SHOW:
-            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
-        elif command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
-            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats account-like {ipfsHash} {tableName}"
         
         if len(graphman_cmd) > 0:
             logging.info("graphman_cmd: " + graphman_cmd)
@@ -421,44 +416,7 @@ def graphman():
                 logging.info("output: " + str(output))
                 logging.info("error: " + str(error))
                 
-                if command == const.GRAPHMAN_STATS_SHOW:
-                    # Parse the output for stats show command
-                    lines = output.strip().split('\n')
-                    data = []
-                    
-                    for line in lines[2:]:  # Skip the header lines
-                        if line.startswith('  (a):'):
-                            break
-                        if line.strip():
-                            parts = line.split('|')
-                            if len(parts) == 4:
-                                table_info = parts[0].strip().rsplit(None, 1)
-                                table_name = table_info[0].strip()
-                                account_like = '(a)' in table_info
-                                
-                                entities = int(parts[1].strip().replace(',', '') or 0)
-                                versions = int(parts[2].strip().replace(',', '') or 0)
-                                ratio = float(parts[3].strip().rstrip('%') or 0)
-                                
-                                data.append({
-                                    "table": table_name,
-                                    "entities": entities,
-                                    "versions": versions,
-                                    "ratio": ratio,
-                                    "account_like": account_like
-                                })
-                    
-                    return jsonify({
-                        "status": "success", 
-                        "data": data
-                    })
-                elif command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
-                    if "account-like flag set" in output:
-                        return const.SUCCESS
-                    else:
-                        return const.ERROR
-                else:
-                    return const.SUCCESS
+                return const.SUCCESS
             except subprocess.CalledProcessError as e:
                 logging.error(f"Error executing graphman command: {e}")
                 return const.ERROR
@@ -701,6 +659,91 @@ def get_subgraph_size():
     except Exception as e:
         logging.error(f"Error in get_subgraph_size: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/graphmanStats', methods=['POST'])
+def graphman_stats():
+    try:
+        token = request.form.get("token")
+        command = request.form.get("command")
+        ipfsHash = request.form.get("ipfsHash")
+        tableName = request.form.get("tableName")
+        isClear = request.form.get("isClear", "").lower() == "true"
+        
+        if token != config.token:
+            return const.TOKEN_ERROR
+
+        logging.info(f"{command or ''} {ipfsHash or ''} {tableName or ''} {isClear}")
+        
+        graphman_cmd = ""
+        
+        if command == const.GRAPHMAN_STATS_SHOW:
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
+        elif command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
+            clear_option = "-c" if isClear else ""
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats account-like {ipfsHash} {tableName} {clear_option}"
+        else:
+            return jsonify({"status": "error", "message": "Invalid command"}), 400
+        
+        if len(graphman_cmd) > 0:
+            logging.info("graphman_cmd: " + graphman_cmd)
+            try:
+                result = subprocess.run([graphman_cmd], shell=True, check=True,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        universal_newlines=True)
+                output = result.stdout
+                error = result.stderr
+                logging.info("output: " + str(output))
+                logging.info("error: " + str(error))
+                
+                if command == const.GRAPHMAN_STATS_SHOW:
+                    # Parse the output for stats show command
+                    lines = output.strip().split('\n')
+                    data = []
+                    
+                    for line in lines[2:]:  # Skip the header lines
+                        if line.startswith('  (a):'):
+                            break
+                        if line.strip():
+                            parts = line.split('|')
+                            if len(parts) == 4:
+                                table_info = parts[0].strip().rsplit(None, 1)
+                                table_name = table_info[0].strip()
+                                account_like = '(a)' in table_info
+                                
+                                entities = int(parts[1].strip().replace(',', '') or 0)
+                                versions = int(parts[2].strip().replace(',', '') or 0)
+                                ratio = float(parts[3].strip().rstrip('%') or 0)
+                                
+                                data.append({
+                                    "table": table_name,
+                                    "entities": entities,
+                                    "versions": versions,
+                                    "ratio": ratio,
+                                    "account_like": account_like
+                                })
+                    
+                    return jsonify({
+                        "status": "success", 
+                        "data": data
+                    })
+                elif command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
+                    if isClear:
+                        if "account-like flag cleared" in output:
+                            return const.SUCCESS
+                    else:
+                        if "account-like flag set" in output:
+                            return const.SUCCESS
+                    return const.ERROR
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Error executing graphman command: {e}")
+                return jsonify({"status": "error", "message": str(e)}), 500
+        else:
+            return jsonify({"status": "error", "message": "Invalid command"}), 400
+    except Exception as e:
+        logging.error(f"Unexpected error in graphman_stats: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == '__main__':
