@@ -11,6 +11,15 @@ import json
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Set up file handler
+file_handler = logging.FileHandler('subgraph_syncing.log')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Get the root logger and add the file handler
+root_logger = logging.getLogger()
+root_logger.addHandler(file_handler)
+
 def create_subgraph_status_table():
     conn = sqlite3.connect('subgraph_database.db')
     cursor = conn.cursor()
