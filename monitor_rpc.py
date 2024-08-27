@@ -5,6 +5,23 @@ import logging
 import const
 
 
+def setup_logging():
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    handlers = [
+        logging.FileHandler('monitor_rpc.log'),
+        logging.StreamHandler()
+    ]
+    
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    
+    for handler in handlers:
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+
 def get_near_chain_head(rpc):
     try:
         response = requests.get(rpc)
@@ -115,18 +132,17 @@ def monitor_rpc():
                         check_healthy(behind_block_number, chain_head_block_number, chain_rpc, current_block_number,
                                       your_rpc)
                     else:
-                        message = """Can not fetch chain_id from your rpc : %s""" % (
-                            your_rpc)
+                        message = f"""Can not fetch chain_id from your rpc: {your_rpc}
+                                      Response status: {response.status_code}
+                                      Response text: {response.text}"""
                         send_alert_msg(message)
                 except requests.exceptions.Timeout:
-                    message = """Timeout to fetch data from your rpc : %s""" % (
-                        your_rpc)
+                    message = f"""Timeout to fetch data from your rpc: {your_rpc}"""
                     send_alert_msg(message)
                 except Exception as e:
-                    print(e)
-                    logging.error("error checking rpc: " + str(e))
-                    message = """Can not fetch data from your rpc : %s""" % (
-                        your_rpc)
+                    logging.error(f"error checking rpc: {str(e)}")
+                    message = f"""Can not fetch data from your rpc: {your_rpc}
+                                  Error: {str(e)}"""
                     send_alert_msg(message)
 
         if "near" in config.rpc_list and config.rpc_list.get("near"):
@@ -163,21 +179,25 @@ def monitor_rpc():
 
 
 def check_healthy(behind_block_number, chain_head_block_number, chain_rpc, current_block_number, rpc):
-    if chain_head_block_number != -1 and behind_block_number > config.threshold_block_behind:
-        message = """Your chain %s has a problem. 
+    logging.info(f"RPC: {rpc}, Chain head: {chain_head_block_number}, Current: {current_block_number}, Behind: {behind_block_number}")
+    
+    # Ensure chain_head_block_number and behind_block_number are numbers
+    if not isinstance(chain_head_block_number, (int, float)) or not isinstance(behind_block_number, (int, float)):
+        message = f"""Unable to determine health of chain {rpc}.
                                             \n-------------------
-                                            \nYour current blockHeight : %s
-                                            \nChainhead blockHeight : %s
-                                            \nBlock behind: %s""" % (
-            rpc, str(current_block_number), str(chain_head_block_number),
-            str(behind_block_number))
+                                            \nChain head block number: {chain_head_block_number}
+                                            \nBehind block number: {behind_block_number}
+                                            \nOne or both values are not numeric."""
         send_alert_msg(message)
-    # elif chain_head_block_number == -1:
-    #     message = """Can not fetch blockHeight for public rpc : %s""" % (
-    #         chain_rpc)
-    #     send_alert_msg(message)
+    elif chain_head_block_number != -1 and behind_block_number > config.threshold_block_behind:
+        message = f"""Your chain {rpc} has a problem. 
+                                            \n-------------------
+                                            \nYour current blockHeight : {current_block_number}
+                                            \nChainhead blockHeight : {chain_head_block_number}
+                                            \nBlock behind: {behind_block_number}"""
+        send_alert_msg(message)
     else:
-        print("Your chain rpc " + rpc + " is good !")
+        logging.info(f"Your chain rpc {rpc} is good !")  # Changed from print to logging.info
 
 
 def send_alert_msg(message):
@@ -189,31 +209,30 @@ def send_alert_msg(message):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         response = requests.post(const.API_ALERT_RPC, data=params, headers=headers)
         if response.status_code == 200 and response.json()["code"] == 0:
-            print("************ SEND ALERT SUCCESS ***********\n")
-            logging.info("alert: " + message)
+            logging.info("************ SEND ALERT SUCCESS ***********")
+            logging.info(f"alert: {message}")
         else:
-            print("************ SEND ALERT ERROR ***********\n")
-            logging.info("alert: " + message)
+            logging.error("************ SEND ALERT ERROR ***********")
+            logging.error(f"alert: {message}")
     except Exception as e:
-        print(e)
-        logging.error("alert_msg: " + str(e))
+        logging.error(f"alert_msg: {str(e)}")
 
 
 def start_monitor_rpc():
     try:
+        setup_logging()  # This line configures logging for both file and console
         if isinstance(config.chat_id, (int, float)) and config.chat_id != 0:
-            print("Start monitor rpc !")
+            logging.info("Start monitor rpc !")  # Changed from print to logging.info
             while True:
                 try:
                     monitor_rpc()
                     time.sleep(2 * 60)  # 2 minutes
                 except Exception as e:
-                    print(e)
-                    logging.error("start_monitor_rpc:" + str(e))
+                    logging.error(f"start_monitor_rpc: {str(e)}")  # Changed from print to logging.error
+                    time.sleep(2 * 60)  # 2 minutes
         else:
-            print("chat_id is not correct so stop monitor rpc !")
+            logging.warning("chat_id is not correct so stop monitor rpc !")  # Changed from print to logging.warning
 
     except Exception as e:
-        print(e)
-        logging.error("start_monitor_rpc: " + str(e))
+        logging.error(f"start_monitor_rpc: {str(e)}")  # Changed from print to logging.error
 
