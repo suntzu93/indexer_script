@@ -298,7 +298,7 @@ def get_healthy_subgraph():
         token = request.form.get("token")
         subgraphs = request.form.get("subgraphs")
         if token == config.token:
-            if subgraphs in request.form and subgraphs != "all":
+            if subgraphs and subgraphs != "all":
                 graphql_healthy_subgraph = """
                                             { indexingStatuses(subgraphs: [%s]) { subgraph paused synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number} earliestBlock{number}}}}""" % subgraphs
             else:
