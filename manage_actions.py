@@ -403,6 +403,8 @@ def graphman():
                 return const.ERROR
 
             graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
+        elif command == const.GRAPHMAN_INFO:
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} info {ipfsHash}"
         
         if len(graphman_cmd) > 0:
             logging.info("graphman_cmd: " + graphman_cmd)
@@ -416,7 +418,27 @@ def graphman():
                 logging.info("output: " + str(output))
                 logging.info("error: " + str(error))
                 
-                return const.SUCCESS
+                if command == const.GRAPHMAN_INFO:
+                    # Parse the output for info command
+                    info_data = []
+                    current_info = {}
+                    for line in output.strip().split('\n'):
+                        if line.startswith('----------'):
+                            if current_info:
+                                info_data.append(current_info)
+                                current_info = {}
+                        else:
+                            key, value = line.split('|')
+                            current_info[key.strip()] = value.strip()
+                    if current_info:
+                        info_data.append(current_info)
+                    
+                    return jsonify({
+                        "status": "success",
+                        "data": info_data
+                    })
+                else:
+                    return const.SUCCESS
             except subprocess.CalledProcessError as e:
                 logging.error(f"Error executing graphman command: {e}")
                 return const.ERROR
@@ -677,15 +699,20 @@ def graphman_stats():
         
         graphman_cmd = ""
         
-        if command == const.GRAPHMAN_STATS_SHOW:
-            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
-        elif command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
+        if command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
             clear_option = "-c" if isClear else ""
-            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats account-like {ipfsHash} {tableName} {clear_option}"
-        else:
-            return jsonify({"status": "error", "message": "Invalid command"}), 400
-        
-        if len(graphman_cmd) > 0:
+            table_list = tableName.split(',')
+            graphman_cmd = ""
+            for table in table_list:
+                graphman_cmd += f"{config.graphman_cli} --config {config.graphman_config_file} stats account-like {ipfsHash} {table.strip()} {clear_option}; "
+                subprocess.run([graphman_cmd], shell=True, check=True,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        universal_newlines=True)
+            
+            return const.SUCCESS
+        elif command == const.GRAPHMAN_STATS_SHOW:
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} stats show {ipfsHash}"
             logging.info("graphman_cmd: " + graphman_cmd)
             try:
                 result = subprocess.run([graphman_cmd], shell=True, check=True,
@@ -697,45 +724,37 @@ def graphman_stats():
                 logging.info("output: " + str(output))
                 logging.info("error: " + str(error))
                 
-                if command == const.GRAPHMAN_STATS_SHOW:
-                    # Parse the output for stats show command
-                    lines = output.strip().split('\n')
-                    data = []
+
+                # Parse the output for stats show command
+                lines = output.strip().split('\n')
+                data = []
                     
-                    for line in lines[2:]:  # Skip the header lines
-                        if line.startswith('  (a):'):
-                            break
-                        if line.strip():
-                            parts = line.split('|')
-                            if len(parts) == 4:
-                                table_info = parts[0].strip().rsplit(None, 1)
-                                table_name = table_info[0].strip()
-                                account_like = '(a)' in table_info
-                                
-                                entities = int(parts[1].strip().replace(',', '') or 0)
-                                versions = int(parts[2].strip().replace(',', '') or 0)
-                                ratio = float(parts[3].strip().rstrip('%') or 0)
-                                
-                                data.append({
-                                    "table": table_name,
-                                    "entities": entities,
-                                    "versions": versions,
-                                    "ratio": ratio,
-                                    "account_like": account_like
-                                })
-                    
-                    return jsonify({
-                        "status": "success", 
-                        "data": data
-                    })
-                elif command == const.GRAPHMAN_STATS_ACCOUNT_LIKE:
-                    if isClear:
-                        if "account-like flag cleared" in output:
-                            return const.SUCCESS
-                    else:
-                        if "account-like flag set" in output:
-                            return const.SUCCESS
-                    return const.ERROR
+                for line in lines[2:]:  # Skip the header lines
+                    if line.startswith('  (a):'):
+                        break
+                    if line.strip():
+                        parts = line.split('|')
+                        if len(parts) == 4:
+                            table_info = parts[0].strip().rsplit(None, 1)
+                            table_name = table_info[0].strip()
+                            account_like = '(a)' in table_info
+                            
+                            entities = int(parts[1].strip().replace(',', '') or 0)
+                            versions = int(parts[2].strip().replace(',', '') or 0)
+                            ratio = float(parts[3].strip().rstrip('%') or 0)
+                            
+                            data.append({
+                                "table": table_name,
+                                "entities": entities,
+                                "versions": versions,
+                                "ratio": ratio,
+                                "account_like": account_like
+                            })
+                
+                return jsonify({
+                    "status": "success", 
+                    "data": data
+                })
             except subprocess.CalledProcessError as e:
                 logging.error(f"Error executing graphman command: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
