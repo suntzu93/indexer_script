@@ -347,11 +347,12 @@ def graphman():
         rewindBlock = request.form.get("rewindBlock")
         isOffchain = int(request.form.get("isOffchain", 0))
         network = request.form.get("networkId")
+        name = request.form.get("name")
         
         if token != config.token:
             return const.TOKEN_ERROR
 
-        logging.info(f"{command or ''} {ipfsHash or ''} {str(graphNode) or ''} {str(rewindBlock) or ''} {network or ''}")
+        logging.info(f"{command or ''} {ipfsHash or ''} {str(graphNode) or ''} {str(rewindBlock) or ''} {network or ''} {name or ''}")
         
         graphman_cmd = ""
         
@@ -405,6 +406,45 @@ def graphman():
             graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} resume {ipfsHash}"
         elif command == const.GRAPHMAN_INFO:
             graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} info {ipfsHash}"
+        elif command == const.GRAPHMAN_SUBGRAPH_CREATE_DEPLOY:
+            if not name or not ipfsHash:
+                return jsonify({"status": "error", "message": "Both name and ipfsHash are required for subgraph_create_deploy"}), 400
+            
+            # Step 1: Create subgraph
+            create_cmd = f"{config.graphman_cli} -c {config.graphman_config_file} create {name}"
+            logging.info("Create command: " + create_cmd)
+            try:
+                create_result = subprocess.run([create_cmd], shell=True, check=True,
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE,
+                                               universal_newlines=True)
+                create_output = create_result.stdout
+                create_error = create_result.stderr
+                logging.info("Create output: " + str(create_output))
+                logging.info("Create error: " + str(create_error))
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Error executing create command: {e}")
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+            # Step 2: Deploy subgraph
+            deploy_cmd = f"{config.graphman_cli} -c {config.graphman_config_file} deploy --url={config.admin_node_rpc} {name} {ipfsHash}"
+            logging.info("Deploy command: " + deploy_cmd)
+            try:
+                deploy_result = subprocess.run([deploy_cmd], shell=True, check=True,
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE,
+                                               universal_newlines=True)
+                deploy_output = deploy_result.stdout
+                deploy_error = deploy_result.stderr
+                logging.info("Deploy output: " + str(deploy_output))
+                logging.info("Deploy error: " + str(deploy_error))
+
+                # Combine outputs
+                combined_output = f"Create output:\n{create_output}\n\nDeploy output:\n{deploy_output}"
+                return jsonify({"status": "success", "output": combined_output})
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Error executing deploy command: {e}")
+                return jsonify({"status": "error", "message": str(e)}), 500
         
         if len(graphman_cmd) > 0:
             logging.info("graphman_cmd: " + graphman_cmd)

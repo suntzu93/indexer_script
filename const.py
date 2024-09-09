@@ -22,7 +22,9 @@ GRAPHMAN_RESUME = "resume"
 GRAPHMAN_STATS_SHOW = "stats show"
 GRAPHMAN_INFO = "info"
 GRAPHMAN_COPY = "copy"
+GRAPHMAN_DATABASE = "database"
 GRAPHMAN_STATS_ACCOUNT_LIKE = "stats account-like"  # Added this new line
+GRAPHMAN_SUBGRAPH_CREATE_DEPLOY = "subgraph_create_deploy"
 
 # Error
 
