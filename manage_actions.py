@@ -846,7 +846,7 @@ def graphman_copy():
             copy_actions = []
             for block in output.split('-' * 78)[1:]:  # Split by separator lines
                 lines = block.strip().split('\n')
-                if len(lines) >= 4:
+                if len(lines) >= 3:  # Changed from 4 to 3 to include queued actions
                     action = {}
                     for line in lines:
                         key, value = line.split('|')
@@ -861,8 +861,9 @@ def graphman_copy():
                                 action['from'] = match.group(1)
                                 action['to'] = match.group(2)
                                 action['shard'] = match.group(3)
-                        elif key == 'started':
-                            action['started'] = datetime.fromisoformat(value).isoformat()
+                        elif key in ['started', 'queued']:
+                            action['status'] = key
+                            action['timestamp'] = datetime.fromisoformat(value).isoformat()
                         elif key == 'progress':
                             match = re.match(r'([\d.]+)% done, (\d+)/(\d+)', value)
                             if match:
