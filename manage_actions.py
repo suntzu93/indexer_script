@@ -830,49 +830,79 @@ def graphman_copy():
         if token != config.token:
             return const.TOKEN_ERROR
 
-        graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} copy list"
-        
-        result = subprocess.run([graphman_cmd], shell=True, check=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                universal_newlines=True)
-        
-        output = result.stdout
-        
-        # Parse the output
-        copy_actions = []
-        for block in output.split('-' * 78)[1:]:  # Split by separator lines
-            lines = block.strip().split('\n')
-            if len(lines) >= 4:
-                action = {}
-                for line in lines:
-                    key, value = line.split('|')
-                    key = key.strip()
-                    value = value.strip()
+        command = request.form.get("command")
+
+        if command == "list":
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} copy list"
+            
+            result = subprocess.run([graphman_cmd], shell=True, check=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    universal_newlines=True)
+            
+            output = result.stdout
+            
+            # Parse the output
+            copy_actions = []
+            for block in output.split('-' * 78)[1:]:  # Split by separator lines
+                lines = block.strip().split('\n')
+                if len(lines) >= 4:
+                    action = {}
+                    for line in lines:
+                        key, value = line.split('|')
+                        key = key.strip()
+                        value = value.strip()
+                        
+                        if key == 'deployment':
+                            action['deployment'] = value
+                        elif key == 'action':
+                            match = re.match(r'(\w+) -> (\w+) \((\w+)\)', value)
+                            if match:
+                                action['from'] = match.group(1)
+                                action['to'] = match.group(2)
+                                action['shard'] = match.group(3)
+                        elif key == 'started':
+                            action['started'] = datetime.fromisoformat(value).isoformat()
+                        elif key == 'progress':
+                            match = re.match(r'([\d.]+)% done, (\d+)/(\d+)', value)
+                            if match:
+                                action['progress'] = float(match.group(1))
+                                action['current'] = int(match.group(2))
+                                action['total'] = int(match.group(3))
                     
-                    if key == 'deployment':
-                        action['deployment'] = value
-                    elif key == 'action':
-                        match = re.match(r'(\w+) -> (\w+) \((\w+)\)', value)
-                        if match:
-                            action['from'] = match.group(1)
-                            action['to'] = match.group(2)
-                            action['shard'] = match.group(3)
-                    elif key == 'started':
-                        action['started'] = datetime.fromisoformat(value).isoformat()
-                    elif key == 'progress':
-                        match = re.match(r'([\d.]+)% done, (\d+)/(\d+)', value)
-                        if match:
-                            action['progress'] = float(match.group(1))
-                            action['current'] = int(match.group(2))
-                            action['total'] = int(match.group(3))
-                
-                copy_actions.append(action)
-        
-        return jsonify({
-            "status": "success",
-            "data": copy_actions
-        })
+                    copy_actions.append(action)
+            
+            return jsonify({
+                "status": "success",
+                "data": copy_actions
+            })
+
+        elif command == "copy":
+            srcData = request.form.get("srcData")
+            toShard = request.form.get("toShard")
+            toNode = request.form.get("toNode")
+            isReplace = request.form.get("isReplace", "false").lower() == "true"
+
+            if not all([srcData, toShard, toNode]):
+                return jsonify({"status": "error", "message": "Missing required parameters"}), 400
+
+            flag = "--replace" if isReplace else "--activate"
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} copy create {flag} {srcData} {toShard} {toNode}"
+            
+            result = subprocess.run([graphman_cmd], shell=True, check=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    universal_newlines=True)
+            
+            output = result.stdout.strip()
+            
+            return jsonify({
+                "status": "success",
+                "message": output
+            })
+
+        else:
+            return jsonify({"status": "error", "message": "Invalid command"}), 400
     
     except subprocess.CalledProcessError as e:
         logging.error(f"Error executing graphman command: {e}")
