@@ -913,4 +913,5 @@ def graphman_copy():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
+    query_fees_tracker.add_get_query_fees_route(app)
     app.run(host=config.host, port=config.port, debug=True)
