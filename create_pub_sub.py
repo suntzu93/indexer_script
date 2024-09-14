@@ -16,7 +16,7 @@ def get_connection(host):
 
 def create_publication(schema_name):
     try:
-        conn = get_connection(config.primary_host)
+        conn = get_connection(config.primary_host_local)
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(sql.SQL("""
@@ -44,7 +44,7 @@ def create_publication(schema_name):
 
 def drop_publication(schema_name):
     try:
-        conn = get_connection(config.primary_host)
+        conn = get_connection(config.primary_host_local)
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(sql.SQL("DROP PUBLICATION IF EXISTS {};").format(
@@ -96,7 +96,7 @@ def drop_and_create_schema(schema_name):
 
 def dump_and_restore_schema(schema_name):
     try:
-        primary_conn = get_connection(config.primary_host)
+        primary_conn = get_connection(config.primary_host_local)
         replica_conn = get_connection(config.replica_host)
         with primary_conn.cursor() as primary_cur, replica_conn.cursor() as replica_cur:
             # Fetch and create tables
@@ -189,7 +189,7 @@ def handle_drop_pub_sub(schema_name):
 
 def compare_row_counts(schema_name):
     try:
-        primary_conn = get_connection(config.primary_host)
+        primary_conn = get_connection(config.primary_host_local)
         replica_conn = get_connection(config.replica_host)
         
         with primary_conn.cursor() as primary_cur, replica_conn.cursor() as replica_cur:
@@ -248,7 +248,7 @@ def compare_row_counts(schema_name):
 
 def get_publication_stats():
     try:
-        conn = get_connection(config.primary_host)
+        conn = get_connection(config.primary_host_local)
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT application_name, state, sent_lsn, write_lsn, flush_lsn, replay_lsn, 
