@@ -12,11 +12,12 @@ import os.path
 import yaml
 import pending_reward
 import re
-import graph_node_queries
+import database_size
 import query_fees_tracker
 import re
 from datetime import datetime
 from create_pub_sub import handle_create_pub_sub, handle_drop_pub_sub, compare_row_counts, get_publication_stats, get_subscription_stats
+from query_fees_tracker import add_query_fees_routes
 
 app = Flask(__name__)
 CORS(app)
@@ -716,7 +717,7 @@ def get_subgraph_size():
         if token != config.token:
             return const.TOKEN_ERROR
 
-        subgraph_sizes = graph_node_queries.get_subgraph_sizes()
+        subgraph_sizes = database_size.get_subgraph_sizes()
         if subgraph_sizes is None:
             return jsonify({"error": "Failed to retrieve subgraph sizes"}), 500
 

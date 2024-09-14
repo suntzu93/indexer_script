@@ -52,6 +52,30 @@ def get_allocations_with_fees() -> List[Dict]:
         logging.error(f"Error getting allocations: {e}")
         return []
 
+def get_total_fees() -> float:
+    logging.info("Getting total fees...")
+    try:
+        conn = psycopg2.connect(
+            host=config.db_host,
+            port=config.db_port,
+            database=config.agent_database,
+            user=config.username,
+            password=config.password
+        )
+        cursor = conn.cursor()
+        cursor.execute('''
+        SELECT SUM(fees) / 10^18 as "Total Fees"
+        FROM public.allocation_receipts ar
+        JOIN public.allocation_summaries als ON ar.allocation = als.allocation
+        WHERE als."closedAt" is null
+        ''')
+        total_fees = cursor.fetchone()[0]
+        conn.close()
+        return float(total_fees) if total_fees else 0.0
+    except Exception as e:
+        logging.error(f"Error getting total fees: {e}")
+        return 0.0
+
 def get_ipfs_hashes(allocations: List[Dict]) -> Dict[str, Dict[str, str]]:
     logging.info("Getting IPFS hashes...")
     ipfs_hash_map = {}
@@ -106,8 +130,8 @@ def save_fees_data():
             allocations = get_allocations_with_fees()
             logging.info(f"Retrieved {len(allocations)} allocations with fees")
             
-            ipfs_hash_map = get_ipfs_hashes(allocations)
-            logging.info(f"Retrieved IPFS hashes for {len(ipfs_hash_map)} allocations")
+            total_fees = get_total_fees()
+            logging.info(f"Total fees across all allocations: {total_fees}")
             
             current_time = int(time.time())
             ten_minutes_ago = current_time - 540
@@ -204,6 +228,20 @@ def get_query_fees():
         logging.error(f"Error in get_query_fees: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-# Add this function to your Flask app in manage_actions.py
-def add_get_query_fees_route(app):
+def get_total_fees_api():
+    try:
+        # Check token
+        token = request.form.get('token')
+        if token != config.token:
+            return jsonify({"error": "Invalid token"}), 401
+
+        total_fees = get_total_fees()
+        return jsonify({"total_fees": total_fees})
+    except Exception as e:
+        logging.error(f"Error in get_total_fees_api: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+def add_query_fees_routes(app):
     app.add_url_rule('/getQueryFees', 'get_query_fees', get_query_fees, methods=['POST'])
+    app.add_url_rule('/getTotalFees', 'get_total_fees_api', get_total_fees_api, methods=['POST'])
