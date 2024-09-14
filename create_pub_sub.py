@@ -120,34 +120,33 @@ def dump_and_restore_schema(schema_name):
         if 'PGPASSWORD' in os.environ:
             del os.environ['PGPASSWORD']
 
-def create_subscription(schema_name):
+def create_subscription(schema_name,isCopy=True):
     try:
         conn = get_connection(config.replica_host)
         conn.autocommit = True
         with conn.cursor() as cur:
-            cur.execute(sql.SQL("""
-                DROP SUBSCRIPTION IF EXISTS {};
-                CREATE SUBSCRIPTION {}
-                CONNECTION 'host={host} port={port} user={user} password={password} dbname={dbname}'
-                PUBLICATION {publication} WITH (copy_data = true);
-            """).format(
-                sql.Identifier(f"{schema_name}_sub"),
-                sql.Identifier(f"{schema_name}_sub"),
-                host=sql.Literal(config.primary_host),
-                port=sql.Literal(config.db_port),
-                user=sql.Literal(config.username),
-                password=sql.Literal(config.password),
-                dbname=sql.Literal(config.primary_database),
-                publication=sql.Identifier(f"{schema_name}_pub")
-            ))
-            logging.info(f"Subscription {schema_name}_sub created on replica.")
+            subscription_name = f"{schema_name}_sub"
+            publication_name = f"{schema_name}_pub"
+            connection_string = f"host={config.primary_host} port={config.db_port} user={config.username} password={config.password} dbname={config.primary_database}"
+            
+            cur.execute(f"DROP SUBSCRIPTION IF EXISTS {subscription_name};")
+            
+            create_sub_query = f"""
+                CREATE SUBSCRIPTION {subscription_name}
+                CONNECTION '{connection_string}'
+                PUBLICATION {publication_name} WITH (copy_data = {isCopy});
+            """
+            
+            cur.execute(create_sub_query)
+            
+            logging.info(f"Subscription {subscription_name} created on replica.")
     except Exception as e:
         logging.error(f"Error creating subscription: {e}")
         raise
     finally:
         conn.close()
 
-def handle_create_pub_sub(schema_name):
+def handle_create_pub_sub(schema_name,isCopy=True):
     try:
         create_publication(schema_name)
         # Check if schema exists on replica
@@ -165,7 +164,7 @@ def handle_create_pub_sub(schema_name):
         if dump_result["status"] == "error":
             return dump_result
 
-        create_subscription(schema_name)
+        create_subscription(schema_name,isCopy)
         return {"status": "success", "message": "Publication and Subscription created successfully."}
     except Exception as e:
         logging.error(f"Error in create_pub_sub: {e}")

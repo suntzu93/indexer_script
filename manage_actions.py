@@ -918,7 +918,8 @@ def create_pub_and_sub():
     try:
         token = request.form.get("token")
         schema_name = request.form.get("schema_name")
-
+        isCopy = request.form.get("isCopy", "true").lower() == "true"
+        
         if token != config.token:
             return const.TOKEN_ERROR, 403
 
