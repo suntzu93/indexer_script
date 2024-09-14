@@ -16,6 +16,7 @@ import graph_node_queries
 import query_fees_tracker
 import re
 from datetime import datetime
+from create_pub_sub import handle_create_pub_sub, handle_drop_pub_sub, compare_row_counts, get_publication_stats, get_subscription_stats
 
 app = Flask(__name__)
 CORS(app)
@@ -911,6 +912,103 @@ def graphman_copy():
     except Exception as e:
         logging.error(f"Unexpected error in graphman_copy: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/createPubAndSub', methods=['POST'])
+def create_pub_and_sub():
+    try:
+        token = request.form.get("token")
+        schema_name = request.form.get("schema_name")
+
+        if token != config.token:
+            return const.TOKEN_ERROR, 403
+
+        if not schema_name:
+            return jsonify({"status": "error", "message": "schema_name is required"}), 400
+
+        result = handle_create_pub_sub(schema_name)
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        logging.error(f"createPubAndSub: {str(e)}")
+        return const.ERROR, 500
+
+@app.route('/dropPubAndSub', methods=['POST'])
+def drop_pub_and_sub():
+    try:
+        token = request.form.get("token")
+        schema_name = request.form.get("schema_name")
+
+        if token != config.token:
+            return const.TOKEN_ERROR, 403
+
+        if not schema_name:
+            return jsonify({"status": "error", "message": "schema_name is required"}), 400
+
+        result = handle_drop_pub_sub(schema_name)
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        logging.error(f"dropPubAndSub: {str(e)}")
+        return const.ERROR, 500
+
+@app.route('/compareRowCounts', methods=['POST'])
+def compare_row_counts_api():
+    try:
+        token = request.form.get("token")
+        schema_name = request.form.get("schema_name")
+
+        if token != config.token:
+            return const.TOKEN_ERROR, 403
+
+        if not schema_name:
+            return jsonify({"status": "error", "message": "schema_name is required"}), 400
+
+        result = compare_row_counts(schema_name)
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        logging.error(f"compareRowCounts: {str(e)}")
+        return const.ERROR, 500
+
+@app.route('/getPublicationStats', methods=['GET'])
+def get_publication_stats_api():
+    try:
+        token = request.args.get("token")
+
+        if token != config.token:
+            return const.TOKEN_ERROR, 403
+
+        result = get_publication_stats()
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        logging.error(f"getPublicationStats: {str(e)}")
+        return const.ERROR, 500
+
+@app.route('/getSubscriptionStats', methods=['GET'])
+def get_subscription_stats_api():
+    try:
+        token = request.args.get("token")
+
+        if token != config.token:
+            return const.TOKEN_ERROR, 403
+
+        result = get_subscription_stats()
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        logging.error(f"getSubscriptionStats: {str(e)}")
+        return const.ERROR, 500
 
 if __name__ == '__main__':
     query_fees_tracker.add_get_query_fees_route(app)
