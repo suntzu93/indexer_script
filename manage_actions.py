@@ -976,10 +976,10 @@ def compare_row_counts_api():
         logging.error(f"compareRowCounts: {str(e)}")
         return const.ERROR, 500
 
-@app.route('/getPublicationStats', methods=['GET'])
+@app.route('/getPublicationStats', methods=['POST'])
 def get_publication_stats_api():
     try:
-        token = request.args.get("token")
+        token = request.form.get("token")
 
         if token != config.token:
             return const.TOKEN_ERROR, 403
@@ -993,10 +993,10 @@ def get_publication_stats_api():
         logging.error(f"getPublicationStats: {str(e)}")
         return const.ERROR, 500
 
-@app.route('/getSubscriptionStats', methods=['GET'])
+@app.route('/getSubscriptionStats', methods=['POST'])
 def get_subscription_stats_api():
     try:
-        token = request.args.get("token")
+        token = request.form.get("token")
 
         if token != config.token:
             return const.TOKEN_ERROR, 403
