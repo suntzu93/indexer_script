@@ -23,14 +23,24 @@ root_logger.addHandler(file_handler)
 def create_subgraph_status_table():
     conn = sqlite3.connect('subgraph_database.db')
     cursor = conn.cursor()
+    # Create table with an additional 'alert_count' column
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS SubgraphStatus (
         ipfsHash TEXT PRIMARY KEY,
         latestBlock INTEGER,
-        health TEXT
+        health TEXT,
+        alert_count INTEGER DEFAULT 0
     )
     ''')
     conn.commit()
+
+    # Optional: Ensure 'alert_count' column exists for existing databases
+    cursor.execute("PRAGMA table_info(SubgraphStatus)")
+    columns = [info[1] for info in cursor.fetchall()]
+    if 'alert_count' not in columns:
+        cursor.execute("ALTER TABLE SubgraphStatus ADD COLUMN alert_count INTEGER DEFAULT 0")
+        conn.commit()
+
     conn.close()
 
 def get_allocations_with_fees() -> List[Dict]:
@@ -125,30 +135,64 @@ def update_subgraph_status(statuses: List[Dict]):
         logging.info(f"Network: {network}, Health: {health}")
         logging.info(f"Latest Block: {latest_block}, Chain Head Block: {chain_head_block}")
         
-        cursor.execute("SELECT latestBlock FROM SubgraphStatus WHERE ipfsHash = ?", (ipfs_hash,))
+        cursor.execute("SELECT latestBlock, health, alert_count FROM SubgraphStatus WHERE ipfsHash = ?", (ipfs_hash,))
         result = cursor.fetchone()
         
         if result is None:
             logging.info(f"New subgraph detected. Inserting {ipfs_hash} into database.")
-            cursor.execute("INSERT INTO SubgraphStatus (ipfsHash, latestBlock, health) VALUES (?, ?, ?)",
-                           (ipfs_hash, latest_block, health))
+            cursor.execute(
+                "INSERT INTO SubgraphStatus (ipfsHash, latestBlock, health, alert_count) VALUES (?, ?, ?, ?)",
+                (ipfs_hash, latest_block, health, 0)
+            )
         else:
-            old_latest_block = int(result[0])
-            logging.info(f"Existing subgraph. Old latest block: {old_latest_block}")
+            old_latest_block, old_health, alert_count = result
+            logging.info(f"Existing subgraph. Old latest block: {old_latest_block}, Alert count: {alert_count}")
             threshold = get_threshold(network)
             blocks_behind = chain_head_block - latest_block
             logging.info(f"Blocks behind: {blocks_behind}, Threshold: {threshold}")
             
+            alert_needed = False
+            alert_message = ""
+            
             if blocks_behind > threshold:
-                alert_message = f"Syncing Warning : {ipfs_hash} - {network} - {blocks_behind} blocks behind"
+                if health == "failed":
+                    if alert_count == 0:
+                        alert_message = f"Syncing Warning : {ipfs_hash} - {network} - {blocks_behind} blocks behind, Reason: Subgraph broken."
+                        alert_needed = True
+                else:
+                    alert_message = f"Syncing Warning : {ipfs_hash} - {network} - {blocks_behind} blocks behind."
+                    alert_needed = True
+            
+            if alert_needed:
                 logging.warning(alert_message)
                 send_alert_msg(alert_message)
+                
+                if health == "failed":
+                    # Set alert_count to 1 to prevent further alerts
+                    cursor.execute(
+                        "UPDATE SubgraphStatus SET alert_count = 1, latestBlock = ?, health = ? WHERE ipfsHash = ?",
+                        (latest_block, health, ipfs_hash)
+                    )
+                else:
+                    # Increment alert_count for non-failed health statuses
+                    cursor.execute(
+                        "UPDATE SubgraphStatus SET alert_count = alert_count + 1, latestBlock = ?, health = ? WHERE ipfsHash = ?",
+                        (latest_block, health, ipfs_hash)
+                    )
             else:
-                logging.info("Blocks behind within threshold. No alert sent.")
-            
-            logging.info(f"Updating subgraph {ipfs_hash} in database.")
-            cursor.execute("UPDATE SubgraphStatus SET latestBlock = ?, health = ? WHERE ipfsHash = ?",
-                           (latest_block, health, ipfs_hash))
+                logging.info("No alert sent. Blocks behind within threshold or alert already sent.")
+                # Optionally reset alert_count if subgraph is back to healthy
+                if blocks_behind <= threshold and alert_count > 0:
+                    cursor.execute(
+                        "UPDATE SubgraphStatus SET alert_count = 0, latestBlock = ?, health = ? WHERE ipfsHash = ?",
+                        (latest_block, health, ipfs_hash)
+                    )
+                else:
+                    # Update latestBlock and health without modifying alert_count
+                    cursor.execute(
+                        "UPDATE SubgraphStatus SET latestBlock = ?, health = ? WHERE ipfsHash = ?",
+                        (latest_block, health, ipfs_hash)
+                    )
     
     conn.commit()
     conn.close()
