@@ -107,7 +107,8 @@ def dump_and_restore_schema(schema_name):
                 primary_cur.execute(sql.SQL("SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = %s AND table_name = %s;"),
                                     [schema_name, table_name])
                 columns = primary_cur.fetchall()
-                columns_def = ", ".join([f"{col[0]} {col[1]}" for col in columns])
+                # Quote column names to handle reserved keywords
+                columns_def = ", ".join([f'"{col[0]}" {col[1]}' for col in columns])
                 replica_cur.execute(sql.SQL("CREATE TABLE IF NOT EXISTS {}.{} ({});").format(
                     sql.Identifier(schema_name),
                     sql.Identifier(table_name),
@@ -121,6 +122,7 @@ def dump_and_restore_schema(schema_name):
                     index_def = index[0]
                     try:
                         replica_cur.execute(index_def)
+                        logging.info(f"Index created on {schema_name}.{table_name}: {index_def}")
                     except psycopg2.errors.DuplicateObject:
                         logging.warning(f"Index already exists on {schema_name}.{table_name}, skipping.")
             logging.info(f"Schema {schema_name} dumped from primary and restored on replica with indexes.")
