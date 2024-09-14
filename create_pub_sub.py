@@ -83,14 +83,13 @@ def drop_pub_sub(schema_name):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def drop_and_create_schema(schema_name):
+def drop_schema(schema_name):
     try:
         conn = get_connection(config.replica_host)
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE;").format(sql.Identifier(schema_name)))
-            cur.execute(sql.SQL("CREATE SCHEMA {};").format(sql.Identifier(schema_name)))
-            logging.info(f"Schema {schema_name} dropped and created on replica.")
+            logging.info(f"Schema {schema_name} dropped .")
     except Exception as e:
         logging.error(f"Error dropping/creating schema: {e}")
         raise
@@ -132,7 +131,8 @@ def create_subscription(schema_name, isCopy=True):
                 connection_string = f"host={config.primary_host} port={config.db_port} user={config.username} password={config.password} dbname={config.primary_database}"
                 
                 cur.execute(f"DROP SUBSCRIPTION IF EXISTS {subscription_name};")
-                
+                logging.info(f"Subscription {subscription_name} dropped from replica.")
+                logging.info(f"Creating subscription {subscription_name} on replica.")
                 create_sub_query = f"""
                     CREATE SUBSCRIPTION {subscription_name}
                     CONNECTION '{connection_string}'
@@ -152,21 +152,18 @@ def create_subscription(schema_name, isCopy=True):
     thread = threading.Thread(target=create_sub_async)
     thread.start()
 
-    return {"status": "success", "message": f"Subscription creation for {schema_name} started asynchronously."}
+    # Wait for a short time to check if the thread has completed
+    thread.join(timeout=5)
+
+    if thread.is_alive():
+        return {"status": "pending", "message": f"Subscription creation for {schema_name} is in progress. Please check the logs for completion."}
+    else:
+        return {"status": "success", "message": f"Subscription creation for {schema_name} completed successfully."}
 
 def handle_create_pub_sub(schema_name, isCopy=True):
     try:
         create_publication(schema_name)
-        # Check if schema exists on replica
-        conn = get_connection(config.replica_host)
-        with conn.cursor() as cur:
-            cur.execute(sql.SQL("SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = %s);"), [schema_name])
-            schema_exists = cur.fetchone()[0]
-
-        if schema_exists:
-            drop_and_create_schema(schema_name)
-        else:
-            drop_and_create_schema(schema_name)
+        drop_schema(schema_name)
 
         dump_result = dump_and_restore_schema(schema_name)
         if dump_result["status"] == "error":
