@@ -2,6 +2,7 @@ import psycopg2
 from psycopg2 import sql
 import logging
 import config
+import subprocess
 
 logging.basicConfig(filename='manage_publication_subscription.log', level=logging.DEBUG)
 
@@ -96,77 +97,20 @@ def drop_and_create_schema(schema_name):
 
 def dump_and_restore_schema(schema_name):
     try:
-        primary_conn = get_connection(config.primary_host_local)
-        replica_conn = get_connection(config.replica_host)
-        with primary_conn.cursor() as primary_cur, replica_conn.cursor() as replica_cur:
-            # Fetch and create user-defined types first
-            primary_cur.execute(sql.SQL("""
-                SELECT t.typname, t.typtype, n.nspname
-                FROM pg_type t
-                JOIN pg_namespace n ON t.typnamespace = n.oid
-                WHERE n.nspname = %s AND t.typtype = 'e';
-            """), [schema_name])
-            types = primary_cur.fetchall()
-            for type_name, type_type, type_schema in types:
-                primary_cur.execute(sql.SQL("SELECT unnest(enum_range(NULL::{}.{}))::text;").format(
-                    sql.Identifier(type_schema),
-                    sql.Identifier(type_name)
-                ))
-                enum_values = primary_cur.fetchall()
-                enum_values_str = ", ".join(f"'{val[0]}'" for val in enum_values)
-                replica_cur.execute(sql.SQL("""
-                    DO $$
-                    BEGIN
-                        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = %s) THEN
-                            CREATE TYPE {}.{} AS ENUM ({});
-                        END IF;
-                    END $$;
-                """).format(
-                    sql.Identifier(type_schema),
-                    sql.Identifier(type_name),
-                    sql.SQL(enum_values_str)
-                ), [type_name])
-
-            # Fetch and create tables
-            primary_cur.execute(sql.SQL("SELECT table_name FROM information_schema.tables WHERE table_schema = %s;"), [schema_name])
-            tables = primary_cur.fetchall()
-            for table in tables:
-                table_name = table[0]
-                primary_cur.execute(sql.SQL("""
-                    SELECT column_name, 
-                           CASE 
-                               WHEN data_type = 'USER-DEFINED' THEN udt_name 
-                               ELSE data_type 
-                           END as data_type
-                    FROM information_schema.columns 
-                    WHERE table_schema = %s AND table_name = %s;
-                """), [schema_name, table_name])
-                columns = primary_cur.fetchall()
-                # Quote column names and handle user-defined types
-                columns_def = ", ".join([f'"{col[0]}" {col[1]}' for col in columns])
-                replica_cur.execute(sql.SQL("CREATE TABLE IF NOT EXISTS {}.{} ({});").format(
-                    sql.Identifier(schema_name),
-                    sql.Identifier(table_name),
-                    sql.SQL(columns_def)
-                ))
-                
-                # Fetch and recreate indexes
-                primary_cur.execute(sql.SQL("SELECT indexdef FROM pg_indexes WHERE schemaname = %s AND tablename = %s;"), [schema_name, table_name])
-                indexes = primary_cur.fetchall()
-                for index in indexes:
-                    index_def = index[0]
-                    try:
-                        replica_cur.execute(index_def)
-                        logging.info(f"Index created on {schema_name}.{table_name}: {index_def}")
-                    except psycopg2.errors.DuplicateObject:
-                        logging.warning(f"Index already exists on {schema_name}.{table_name}, skipping.")
-            logging.info(f"Schema {schema_name} dumped from primary and restored on replica with indexes and user-defined types.")
+        dump_command = f"pg_dump -h {config.primary_host_local} -U {config.username} -d {config.primary_database} -n {schema_name} --schema-only"
+        restore_command = f"psql -h {config.replica_host} -U {config.username} -d {config.primary_database}"
+        
+        process = subprocess.Popen(f"{dump_command} | {restore_command}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        
+        if process.returncode != 0:
+            raise Exception(f"Error in dump and restore: {stderr.decode()}")
+        
+        logging.info(f"Schema {schema_name} dumped from primary and restored on replica.")
+        return {"status": "success", "message": f"Schema {schema_name} successfully dumped and restored."}
     except Exception as e:
         logging.error(f"Error dumping/restoring schema: {e}")
-        raise
-    finally:
-        primary_conn.close()
-        replica_conn.close()
+        return {"status": "error", "message": str(e)}
 
 def create_subscription(schema_name):
     try:
@@ -209,7 +153,10 @@ def handle_create_pub_sub(schema_name):
         else:
             drop_and_create_schema(schema_name)
 
-        dump_and_restore_schema(schema_name)
+        dump_result = dump_and_restore_schema(schema_name)
+        if dump_result["status"] == "error":
+            return dump_result
+
         create_subscription(schema_name)
         return {"status": "success", "message": "Publication and Subscription created successfully."}
     except Exception as e:
