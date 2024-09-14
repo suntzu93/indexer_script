@@ -257,7 +257,17 @@ def get_publication_stats():
             """)
             stats = cur.fetchall()
             columns = [desc[0] for desc in cur.description]
-            publication_stats = [dict(zip(columns, row)) for row in stats]
+            publication_stats = []
+            for row in stats:
+                row_dict = dict(zip(columns, row))
+                # Convert timedelta fields to strings
+                for key in ['write_lag', 'flush_lag', 'replay_lag']:
+                    if row_dict.get(key) is not None:
+                        row_dict[key] = str(row_dict[key])
+                # Convert reply_time to ISO format if not None
+                if row_dict.get('reply_time') is not None:
+                    row_dict['reply_time'] = row_dict['reply_time'].isoformat()
+                publication_stats.append(row_dict)
         return {"status": "success", "data": publication_stats}
     except Exception as e:
         logging.error(f"Error retrieving publication stats: {e}")
