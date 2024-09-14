@@ -99,15 +99,50 @@ def dump_and_restore_schema(schema_name):
         primary_conn = get_connection(config.primary_host_local)
         replica_conn = get_connection(config.replica_host)
         with primary_conn.cursor() as primary_cur, replica_conn.cursor() as replica_cur:
+            # Fetch and create user-defined types first
+            primary_cur.execute(sql.SQL("""
+                SELECT t.typname, t.typtype, n.nspname
+                FROM pg_type t
+                JOIN pg_namespace n ON t.typnamespace = n.oid
+                WHERE n.nspname = %s AND t.typtype = 'e';
+            """), [schema_name])
+            types = primary_cur.fetchall()
+            for type_name, type_type, type_schema in types:
+                primary_cur.execute(sql.SQL("SELECT unnest(enum_range(NULL::{}.{}))::text;").format(
+                    sql.Identifier(type_schema),
+                    sql.Identifier(type_name)
+                ))
+                enum_values = primary_cur.fetchall()
+                enum_values_str = ", ".join(f"'{val[0]}'" for val in enum_values)
+                replica_cur.execute(sql.SQL("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = %s) THEN
+                            CREATE TYPE {}.{} AS ENUM ({});
+                        END IF;
+                    END $$;
+                """).format(
+                    sql.Identifier(type_schema),
+                    sql.Identifier(type_name),
+                    sql.SQL(enum_values_str)
+                ), [type_name])
+
             # Fetch and create tables
             primary_cur.execute(sql.SQL("SELECT table_name FROM information_schema.tables WHERE table_schema = %s;"), [schema_name])
             tables = primary_cur.fetchall()
             for table in tables:
                 table_name = table[0]
-                primary_cur.execute(sql.SQL("SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = %s AND table_name = %s;"),
-                                    [schema_name, table_name])
+                primary_cur.execute(sql.SQL("""
+                    SELECT column_name, 
+                           CASE 
+                               WHEN data_type = 'USER-DEFINED' THEN udt_name 
+                               ELSE data_type 
+                           END as data_type
+                    FROM information_schema.columns 
+                    WHERE table_schema = %s AND table_name = %s;
+                """), [schema_name, table_name])
                 columns = primary_cur.fetchall()
-                # Quote column names to handle reserved keywords
+                # Quote column names and handle user-defined types
                 columns_def = ", ".join([f'"{col[0]}" {col[1]}' for col in columns])
                 replica_cur.execute(sql.SQL("CREATE TABLE IF NOT EXISTS {}.{} ({});").format(
                     sql.Identifier(schema_name),
@@ -125,7 +160,7 @@ def dump_and_restore_schema(schema_name):
                         logging.info(f"Index created on {schema_name}.{table_name}: {index_def}")
                     except psycopg2.errors.DuplicateObject:
                         logging.warning(f"Index already exists on {schema_name}.{table_name}, skipping.")
-            logging.info(f"Schema {schema_name} dumped from primary and restored on replica with indexes.")
+            logging.info(f"Schema {schema_name} dumped from primary and restored on replica with indexes and user-defined types.")
     except Exception as e:
         logging.error(f"Error dumping/restoring schema: {e}")
         raise
