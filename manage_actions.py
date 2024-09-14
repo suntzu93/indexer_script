@@ -1013,5 +1013,5 @@ def get_subscription_stats_api():
         return const.ERROR, 500
 
 if __name__ == '__main__':
-    query_fees_tracker.add_get_query_fees_route(app)
+    query_fees_tracker.add_query_fees_routes(app)
     app.run(host=config.host, port=config.port, debug=True)
