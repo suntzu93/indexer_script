@@ -2,6 +2,7 @@ import sqlite3
 import requests
 import yaml
 import time
+from datetime import datetime, timedelta
 
 
 def init_db():
@@ -15,6 +16,14 @@ def init_db():
         graft_block TEXT
     )
     ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS last_fetch (
+        id INTEGER PRIMARY KEY,
+        timestamp DATETIME
+    )
+    ''')
+    # Insert initial timestamp if table is empty
+    cursor.execute('INSERT OR IGNORE INTO last_fetch (id, timestamp) VALUES (1, ?)', (datetime.min.isoformat(),))
     conn.commit()
     conn.close()
 
@@ -168,17 +177,45 @@ def is_db_has_data():
     conn.close()
 
 
+def get_last_fetch_time():
+    conn = sqlite3.connect('subgraph_database.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT timestamp FROM last_fetch ORDER BY timestamp DESC LIMIT 1')
+    result = cursor.fetchone()
+    conn.close()
+    return datetime.fromisoformat(result[0]) if result else None
+
+
+def update_last_fetch_time():
+    conn = sqlite3.connect('subgraph_database.db')
+    cursor = conn.cursor()
+    cursor.execute('UPDATE last_fetch SET timestamp = ? WHERE id = 1', (datetime.now().isoformat(),))
+    conn.commit()
+    conn.close()
+
+
 def start_manage_graft():
     init_db()
     while True:
-        # only call for first time
-        if is_db_has_data():
-            subgraphs = fetch_100_subgraphs()
-        else:
+        if not is_db_has_data():
             subgraphs = fetch_subgraphs()
+            print("Database empty. Fetching all subgraphs.")
+        else:
+            last_fetch_time = get_last_fetch_time()
+            current_time = datetime.now()
+
+            if last_fetch_time is None or (current_time - last_fetch_time) > timedelta(hours=1):
+                subgraphs = fetch_100_subgraphs()
+                print("Fetching 100 most recent subgraphs.")
+                update_last_fetch_time()
+            else:
+                print("Less than 1 hour since last fetch. Skipping...")
+                time.sleep(60 * 60)  # Sleep for 1 hour before checking again
+                continue
+
         print("Total subgraphs : " + str(len(subgraphs)))
         graft_data = process_subgraphs(subgraphs)
         save_graft_data(graft_data)
 
-        # sleep 6hrs
+        # Sleep for 6 hours before checking again
         time.sleep(6 * 60 * 60)
