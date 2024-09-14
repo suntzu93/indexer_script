@@ -3,6 +3,7 @@ from psycopg2 import sql
 import logging
 import config
 import subprocess
+import os
 
 logging.basicConfig(filename='manage_publication_subscription.log', level=logging.DEBUG)
 
@@ -97,6 +98,9 @@ def drop_and_create_schema(schema_name):
 
 def dump_and_restore_schema(schema_name):
     try:
+        # Set environment variables for both primary and replica connections
+        os.environ['PGPASSWORD'] = config.password
+        
         dump_command = f"pg_dump -h {config.primary_host_local} -U {config.username} -d {config.primary_database} -n {schema_name} --schema-only"
         restore_command = f"psql -h {config.replica_host} -U {config.username} -d {config.primary_database}"
         
@@ -111,6 +115,10 @@ def dump_and_restore_schema(schema_name):
     except Exception as e:
         logging.error(f"Error dumping/restoring schema: {e}")
         return {"status": "error", "message": str(e)}
+    finally:
+        # Clear the password from environment variables
+        if 'PGPASSWORD' in os.environ:
+            del os.environ['PGPASSWORD']
 
 def create_subscription(schema_name):
     try:
