@@ -163,7 +163,7 @@ def create_subscription(schema_name, isCopy=True):
 def handle_create_pub_sub(schema_name, isCopy=True):
     try:
         # Check if schema exists on primary server
-        primary_conn = get_connection(config.primary_host)
+        primary_conn = get_connection(config.primary_host_local)
         with primary_conn.cursor() as cur:
             cur.execute("""
                 SELECT EXISTS(
@@ -202,7 +202,7 @@ def handle_drop_pub_sub(schema_name):
 
 def compare_row_counts(schema_name):
     try:
-        primary_conn = get_connection(config.primary_host)
+        primary_conn = get_connection(config.primary_host_local)
         with primary_conn.cursor() as cur:
             cur.execute("""
                 SELECT EXISTS(
