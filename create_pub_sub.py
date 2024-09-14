@@ -4,6 +4,7 @@ import logging
 import config
 import subprocess
 import os
+import threading
 
 logging.basicConfig(filename='manage_publication_subscription.log', level=logging.DEBUG)
 
@@ -120,33 +121,40 @@ def dump_and_restore_schema(schema_name):
         if 'PGPASSWORD' in os.environ:
             del os.environ['PGPASSWORD']
 
-def create_subscription(schema_name,isCopy=True):
-    try:
-        conn = get_connection(config.replica_host)
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            subscription_name = f"{schema_name}_sub"
-            publication_name = f"{schema_name}_pub"
-            connection_string = f"host={config.primary_host} port={config.db_port} user={config.username} password={config.password} dbname={config.primary_database}"
-            
-            cur.execute(f"DROP SUBSCRIPTION IF EXISTS {subscription_name};")
-            
-            create_sub_query = f"""
-                CREATE SUBSCRIPTION {subscription_name}
-                CONNECTION '{connection_string}'
-                PUBLICATION {publication_name} WITH (copy_data = {isCopy});
-            """
-            
-            cur.execute(create_sub_query)
-            
-            logging.info(f"Subscription {subscription_name} created on replica.")
-    except Exception as e:
-        logging.error(f"Error creating subscription: {e}")
-        raise
-    finally:
-        conn.close()
+def create_subscription(schema_name, isCopy=True):
+    def create_sub_async():
+        try:
+            conn = get_connection(config.replica_host)
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                subscription_name = f"{schema_name}_sub"
+                publication_name = f"{schema_name}_pub"
+                connection_string = f"host={config.primary_host} port={config.db_port} user={config.username} password={config.password} dbname={config.primary_database}"
+                
+                cur.execute(f"DROP SUBSCRIPTION IF EXISTS {subscription_name};")
+                
+                create_sub_query = f"""
+                    CREATE SUBSCRIPTION {subscription_name}
+                    CONNECTION '{connection_string}'
+                    PUBLICATION {publication_name} WITH (copy_data = {isCopy});
+                """
+                
+                cur.execute(create_sub_query)
+                
+                logging.info(f"Subscription {subscription_name} created on replica.")
+        except Exception as e:
+            logging.error(f"Error creating subscription: {e}")
+        finally:
+            if conn:
+                conn.close()
 
-def handle_create_pub_sub(schema_name,isCopy=True):
+    # Start the subscription creation in a separate thread
+    thread = threading.Thread(target=create_sub_async)
+    thread.start()
+
+    return {"status": "success", "message": f"Subscription creation for {schema_name} started asynchronously."}
+
+def handle_create_pub_sub(schema_name, isCopy=True):
     try:
         create_publication(schema_name)
         # Check if schema exists on replica
@@ -164,8 +172,8 @@ def handle_create_pub_sub(schema_name,isCopy=True):
         if dump_result["status"] == "error":
             return dump_result
 
-        create_subscription(schema_name,isCopy)
-        return {"status": "success", "message": "Publication and Subscription created successfully."}
+        subscription_result = create_subscription(schema_name, isCopy)
+        return subscription_result
     except Exception as e:
         logging.error(f"Error in create_pub_sub: {e}")
         return {"status": "error", "message": str(e)}
