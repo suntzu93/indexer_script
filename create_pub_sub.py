@@ -159,9 +159,23 @@ def create_subscription(schema_name, isCopy=True):
         return {"status": "pending", "message": f"Subscription creation for {schema_name} is in progress. Please check the logs for completion."}
     else:
         return {"status": "success", "message": f"Subscription creation for {schema_name} completed successfully."}
-
+    
 def handle_create_pub_sub(schema_name, isCopy=True):
     try:
+        # Check if schema exists on primary server
+        primary_conn = get_connection(config.primary_host)
+        with primary_conn.cursor() as cur:
+            cur.execute("""
+                SELECT EXISTS(
+                    SELECT 1 FROM information_schema.schemata 
+                    WHERE schema_name = %s
+                );
+            """, (schema_name,))
+            schema_exists = cur.fetchone()[0]
+
+        if not schema_exists:
+            return {"status": "error", "message": f"Schema '{schema_name}' does not exist on the primary server."}
+
         create_publication(schema_name)
         drop_schema(schema_name)
 
@@ -174,6 +188,9 @@ def handle_create_pub_sub(schema_name, isCopy=True):
     except Exception as e:
         logging.error(f"Error in create_pub_sub: {e}")
         return {"status": "error", "message": str(e)}
+    finally:
+        if primary_conn:
+            primary_conn.close()
 
 def handle_drop_pub_sub(schema_name):
     try:
@@ -185,6 +202,19 @@ def handle_drop_pub_sub(schema_name):
 
 def compare_row_counts(schema_name):
     try:
+        primary_conn = get_connection(config.primary_host)
+        with primary_conn.cursor() as cur:
+            cur.execute("""
+                SELECT EXISTS(
+                    SELECT 1 FROM information_schema.schemata 
+                    WHERE schema_name = %s
+                );
+            """, (schema_name,))
+            schema_exists = cur.fetchone()[0]
+
+        if not schema_exists:
+            return {"status": "error", "message": f"Schema '{schema_name}' does not exist on the primary server."}
+
         primary_conn = get_connection(config.primary_host_local)
         replica_conn = get_connection(config.replica_host)
         
