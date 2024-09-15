@@ -219,39 +219,53 @@ def compare_row_counts(schema_name):
         
         with primary_conn.cursor() as primary_cur, replica_conn.cursor() as replica_cur:
             # Get tables from primary
-            primary_cur.execute(sql.SQL("""
+            primary_cur.execute("""
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = %s AND table_type = 'BASE TABLE';
-            """), [schema_name])
+            """, (schema_name,))
             primary_tables = [row[0] for row in primary_cur.fetchall()]
             
             # Get tables from replica
-            replica_cur.execute(sql.SQL("""
+            replica_cur.execute("""
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = %s AND table_type = 'BASE TABLE';
-            """), [schema_name])
+            """, (schema_name,))
             replica_tables = [row[0] for row in replica_cur.fetchall()]
             
             all_tables = set(primary_tables) | set(replica_tables)
             comparison_results = []
             
             for table in all_tables:
-                # Get row counts from primary
-                primary_cur.execute(sql.SQL("SELECT COUNT(*) FROM {}.{};").format(
-                    sql.Identifier(schema_name),
-                    sql.Identifier(table)
-                ))
-                primary_count = primary_cur.fetchone()[0]
+                primary_cur.execute("""
+                    SELECT 
+                        pg_table_size(%s) / COALESCE(NULLIF(avg_width, 0), 1) AS estimated_rows
+                    FROM 
+                        pg_stats
+                    WHERE 
+                        schemaname = %s
+                        AND tablename = %s
+                    GROUP BY 
+                        schemaname, tablename;
+                """, (f"{schema_name}.{table}", schema_name, table))
+                primary_result = primary_cur.fetchone()
+                primary_count = int(primary_result[0]) if primary_result else 0
                 
-                # Get row counts from replica
                 if table in replica_tables:
-                    replica_cur.execute(sql.SQL("SELECT COUNT(*) FROM {}.{};").format(
-                        sql.Identifier(schema_name),
-                        sql.Identifier(table)
-                    ))
-                    replica_count = replica_cur.fetchone()[0]
+                    replica_cur.execute("""
+                        SELECT 
+                            pg_table_size(%s) / COALESCE(NULLIF(avg_width, 0), 1) AS estimated_rows
+                        FROM 
+                            pg_stats
+                        WHERE 
+                            schemaname = %s
+                            AND tablename = %s
+                        GROUP BY 
+                            schemaname, tablename;
+                    """, (f"{schema_name}.{table}", schema_name, table))
+                    replica_result = replica_cur.fetchone()
+                    replica_count = int(replica_result[0]) if replica_result else 0
                 else:
                     replica_count = 0
                 
