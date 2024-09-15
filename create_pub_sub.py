@@ -152,12 +152,9 @@ def create_subscription(schema_name, isCopy=True):
             if conn:
                 conn.close()
     
-    thread = threading.Thread(target=subscription_task, daemon=True)  # Set as daemon if appropriate
+    thread = threading.Thread(target=subscription_task)
     thread.start()
-    return {
-        "status": "subscription is creating",
-        "message": f"Subscription {schema_name}_sub is being created."
-    }
+    return {"status": "creating", "message": f"Subscription {schema_name}_sub creation started."}
 
 def handle_create_pub_sub(schema_name, isCopy=True):
     try:
@@ -183,7 +180,11 @@ def handle_create_pub_sub(schema_name, isCopy=True):
             return dump_result
 
         subscription_result = create_subscription(schema_name, isCopy)
-        return subscription_result
+        
+        return {
+            "status": "success",
+            "message": f"Publication created and {subscription_result['message']}"
+        }
     except Exception as e:
         logging.error(f"Error in create_pub_sub: {e}")
         return {"status": "error", "message": str(e)}
@@ -238,34 +239,32 @@ def compare_row_counts(schema_name):
             comparison_results = []
             
             for table in all_tables:
+                # Estimate row count from primary
                 primary_cur.execute("""
                     SELECT 
-                        pg_table_size(%s) / COALESCE(NULLIF(avg_width, 0), 1) AS estimated_rows
+                        pg_table_size(%s) / NULLIF(AVG(avg_width), 0) AS estimated_rows
                     FROM 
                         pg_stats
                     WHERE 
                         schemaname = %s
-                        AND tablename = %s
-                    GROUP BY 
-                        schemaname, tablename;
+                        AND tablename = %s;
                 """, (f"{schema_name}.{table}", schema_name, table))
                 primary_result = primary_cur.fetchone()
-                primary_count = int(primary_result[0]) if primary_result else 0
+                primary_count = int(primary_result[0]) if primary_result and primary_result[0] is not None else 0
                 
+                # Estimate row count from replica
                 if table in replica_tables:
                     replica_cur.execute("""
                         SELECT 
-                            pg_table_size(%s) / COALESCE(NULLIF(avg_width, 0), 1) AS estimated_rows
+                            pg_table_size(%s) / NULLIF(AVG(avg_width), 0) AS estimated_rows
                         FROM 
                             pg_stats
                         WHERE 
                             schemaname = %s
-                            AND tablename = %s
-                        GROUP BY 
-                            schemaname, tablename;
+                            AND tablename = %s;
                     """, (f"{schema_name}.{table}", schema_name, table))
                     replica_result = replica_cur.fetchone()
-                    replica_count = int(replica_result[0]) if replica_result else 0
+                    replica_count = int(replica_result[0]) if replica_result and replica_result[0] is not None else 0
                 else:
                     replica_count = 0
                 
@@ -343,6 +342,38 @@ def remove_schema_from_replica(schema_name):
         return {"status": "success", "message": f"Schema {schema_name} successfully removed from replica."}
     except Exception as e:
         logging.error(f"Error removing schema from replica: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn:
+            conn.close()
+
+def check_subscription_status(schema_name):
+    try:
+        conn = get_connection(config.replica_host)
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT subname, subenabled
+                FROM pg_subscription
+                WHERE subname = %s;
+            """, (f"{schema_name}_sub",))
+            result = cur.fetchone()
+            
+            if result:
+                return {
+                    "status": "success",
+                    "data": {
+                        "subscription_name": result[0],
+                        "enabled": result[1],
+                        "state": "created" if result[1] else "creating"
+                    }
+                }
+            else:
+                return {
+                    "status": "pending",
+                    "message": f"Subscription {schema_name}_sub is still being created."
+                }
+    except Exception as e:
+        logging.error(f"Error checking subscription status: {e}")
         return {"status": "error", "message": str(e)}
     finally:
         if conn:
