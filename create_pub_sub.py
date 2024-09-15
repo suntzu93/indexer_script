@@ -326,3 +326,19 @@ def get_subscription_stats():
         return {"status": "error", "message": str(e)}
     finally:
         conn.close()
+
+
+def remove_schema_from_replica(schema_name):
+    try:
+        conn = get_connection(config.replica_host)
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE;").format(sql.Identifier(schema_name)))
+            logging.info(f"Schema {schema_name} removed from replica.")
+        return {"status": "success", "message": f"Schema {schema_name} successfully removed from replica."}
+    except Exception as e:
+        logging.error(f"Error removing schema from replica: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn:
+            conn.close()

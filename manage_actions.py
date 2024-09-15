@@ -16,7 +16,7 @@ import database_size
 import query_fees_tracker
 import re
 from datetime import datetime
-from create_pub_sub import handle_create_pub_sub, handle_drop_pub_sub, compare_row_counts, get_publication_stats, get_subscription_stats
+from create_pub_sub import handle_create_pub_sub, handle_drop_pub_sub, compare_row_counts, get_publication_stats, get_subscription_stats, remove_schema_from_replica
 from query_fees_tracker import add_query_fees_routes
 
 app = Flask(__name__)
@@ -1010,6 +1010,27 @@ def get_subscription_stats_api():
             return jsonify(result), 500
     except Exception as e:
         logging.error(f"getSubscriptionStats: {str(e)}")
+        return const.ERROR, 500
+
+@app.route('/removeSchemaFromReplica', methods=['POST'])
+def remove_schema_from_replica_api():
+    try:
+        token = request.form.get("token")
+        schema_name = request.form.get("schema_name")
+
+        if token != config.token:
+            return const.TOKEN_ERROR, 403
+
+        if not schema_name:
+            return jsonify({"status": "error", "message": "schema_name is required"}), 400
+
+        result = remove_schema_from_replica(schema_name)
+        if result["status"] == "success":
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+    except Exception as e:
+        logging.error(f"removeSchemaFromReplica: {str(e)}")
         return const.ERROR, 500
 
 if __name__ == '__main__':
