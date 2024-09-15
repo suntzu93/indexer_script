@@ -130,6 +130,10 @@ def save_fees_data():
             allocations = get_allocations_with_fees()
             logging.info(f"Retrieved {len(allocations)} allocations with fees")
             
+            # Get the ipfs_hash_map
+            ipfs_hash_map = get_ipfs_hashes(allocations)
+            logging.info(f"Retrieved IPFS hashes for {len(ipfs_hash_map)} allocations")
+            
             total_fees = get_total_fees()
             logging.info(f"Total fees across all allocations: {total_fees}")
             
