@@ -121,14 +121,18 @@ def dump_and_restore_schema(schema_name):
             del os.environ['PGPASSWORD']
 
 def create_subscription(schema_name, isCopy=True):
-    def create_sub_async():
+    def subscription_task():
         try:
             conn = get_connection(config.replica_host)
             conn.autocommit = True
             with conn.cursor() as cur:
                 subscription_name = f"{schema_name}_sub"
                 publication_name = f"{schema_name}_pub"
-                connection_string = f"host={config.primary_host} port={config.db_port} user={config.username} password={config.password} dbname={config.primary_database}"
+                connection_string = (
+                    f"host={config.primary_host} port={config.db_port} "
+                    f"user={config.username} password={config.password} "
+                    f"dbname={config.primary_database}"
+                )
                 
                 cur.execute(f"DROP SUBSCRIPTION IF EXISTS {subscription_name};")
                 logging.info(f"Subscription {subscription_name} dropped from replica.")
@@ -147,19 +151,14 @@ def create_subscription(schema_name, isCopy=True):
         finally:
             if conn:
                 conn.close()
-
-    # Start the subscription creation in a separate thread
-    thread = threading.Thread(target=create_sub_async)
-    thread.start()
-
-    # Wait for a short time to check if the thread has completed
-    thread.join(timeout=5)
-
-    if thread.is_alive():
-        return {"status": "pending", "message": f"Subscription creation for {schema_name} is in progress. Please check the logs for completion."}
-    else:
-        return {"status": "success", "message": f"Subscription creation for {schema_name} completed successfully."}
     
+    thread = threading.Thread(target=subscription_task, daemon=True)  # Set as daemon if appropriate
+    thread.start()
+    return {
+        "status": "subscription is creating",
+        "message": f"Subscription {schema_name}_sub is being created."
+    }
+
 def handle_create_pub_sub(schema_name, isCopy=True):
     try:
         # Check if schema exists on primary server
