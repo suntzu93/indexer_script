@@ -239,32 +239,22 @@ def compare_row_counts(schema_name):
             comparison_results = []
             
             for table in all_tables:
-                # Estimate row count from primary
+                # Estimated row count from primary using pg_class
                 primary_cur.execute("""
-                    SELECT 
-                        pg_table_size(%s) / NULLIF(AVG(avg_width), 0) AS estimated_rows
-                    FROM 
-                        pg_stats
-                    WHERE 
-                        schemaname = %s
-                        AND tablename = %s;
-                """, (f"{schema_name}.{table}", schema_name, table))
-                primary_result = primary_cur.fetchone()
-                primary_count = int(primary_result[0]) if primary_result and primary_result[0] is not None else 0
+                    SELECT reltuples::BIGINT
+                    FROM pg_class
+                    WHERE oid = %s::regclass;
+                """, (f"{schema_name}.{table}",))
+                primary_count = primary_cur.fetchone()[0] if primary_cur.rowcount > 0 else 0
                 
-                # Estimate row count from replica
+                # Estimated row count from replica using pg_class
                 if table in replica_tables:
                     replica_cur.execute("""
-                        SELECT 
-                            pg_table_size(%s) / NULLIF(AVG(avg_width), 0) AS estimated_rows
-                        FROM 
-                            pg_stats
-                        WHERE 
-                            schemaname = %s
-                            AND tablename = %s;
-                    """, (f"{schema_name}.{table}", schema_name, table))
-                    replica_result = replica_cur.fetchone()
-                    replica_count = int(replica_result[0]) if replica_result and replica_result[0] is not None else 0
+                        SELECT reltuples::BIGINT
+                        FROM pg_class
+                        WHERE oid = %s::regclass;
+                    """, (f"{schema_name}.{table}",))
+                    replica_count = replica_cur.fetchone()[0] if replica_cur.rowcount > 0 else 0
                 else:
                     replica_count = 0
                 
