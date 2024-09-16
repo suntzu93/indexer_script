@@ -449,6 +449,8 @@ def graphman():
             except subprocess.CalledProcessError as e:
                 logging.error(f"Error executing deploy command: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
+        elif command == const.GRAPHMAN_UNUSED:
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} unused remove"
         
         if len(graphman_cmd) > 0:
             logging.info("graphman_cmd: " + graphman_cmd)
