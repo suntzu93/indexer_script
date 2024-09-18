@@ -13,11 +13,9 @@ import yaml
 import pending_reward
 import re
 import database_size
-import query_fees_tracker
 import re
 from datetime import datetime
 from create_pub_sub import handle_create_pub_sub, handle_drop_pub_sub, compare_row_counts, get_publication_stats, get_subscription_stats, remove_schema_from_replica
-from query_fees_tracker import add_query_fees_routes
 
 app = Flask(__name__)
 CORS(app)
@@ -321,6 +319,26 @@ def get_healthy_subgraph():
         print(e)
         logging.error("get_healthy_subgraph: " + str(e))
         return const.ERROR
+
+
+@app.route('/getAllFees', methods=['POST'])
+def get_all_fees():
+    try:
+        token = request.form.get("token")
+        if token != config.token:
+            return const.TOKEN_ERROR
+
+        fees = pending_reward.get_total_pending_reward()
+        return jsonify({
+            "status": "success",
+            "data": fees
+        }), 200
+    except Exception as e:
+        logging.error(f"Error in get_all_fees: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 
 @app.route('/restartAgent', methods=['POST'])
@@ -1036,5 +1054,4 @@ def remove_schema_from_replica_api():
         return const.ERROR, 500
 
 if __name__ == '__main__':
-    query_fees_tracker.add_query_fees_routes(app)
     app.run(host=config.host, port=config.port, debug=True)
