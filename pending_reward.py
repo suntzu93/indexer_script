@@ -25,11 +25,9 @@ def get_allocations_reward():
 
         # Execute the SQL query
         query = """
-                SELECT lower(ar.allocation) as "allocateId", sum(fees) / 10^18 as "Fees"
-                FROM public.allocation_summaries als
-                JOIN public.allocation_receipts ar on als.allocation = ar.allocation 
-                where als."closedAt" is null
-                group by lower(ar.allocation);
+        SELECT allocation_id as "allocateId", value_aggregate / 10^18 as "Fees"
+        FROM public.scalar_tap_ravs
+        WHERE redeemed_at IS NULL;
             """
         cur.execute(query)
 
