@@ -245,7 +245,44 @@ def get_total_fees_api():
         logging.error(f"Error in get_total_fees_api: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def get_fee_scalar_tap_ravs():
+    try:
+        # Check token
+        token = request.form.get('token')
+        if token != config.token:
+            return jsonify({"error": "Invalid token"}), 401
+
+        conn = psycopg2.connect(
+            host=config.db_host,
+            port=config.db_port,
+            database=config.agent_database,
+            user=config.username,
+            password=config.password
+        )
+        cursor = conn.cursor()
+        cursor.execute('''
+        SELECT allocation_id, value_aggregate as fees
+        FROM public.scalar_tap_ravs
+        WHERE redeemed_at IS NULL
+        ''')
+        rows = cursor.fetchall()
+        conn.close()
+
+        result = [
+            {
+                "allocationId": row[0],
+                "fees": row[1]
+                # Add other fields as necessary
+            }
+            for row in rows
+        ]
+
+        return jsonify(result)
+    except Exception as e:
+        logging.error(f"Error in get_unredeemed_scalar_tap_ravs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 def add_query_fees_routes(app):
     app.add_url_rule('/getQueryFees', 'get_query_fees', get_query_fees, methods=['POST'])
     app.add_url_rule('/getTotalFees', 'get_total_fees_api', get_total_fees_api, methods=['POST'])
+    app.add_url_rule('/getFeesFromTapRavs', 'get_unredeemed_scalar_tap_ravs', get_fee_scalar_tap_ravs, methods=['POST'])
