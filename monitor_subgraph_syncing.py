@@ -55,11 +55,9 @@ def get_allocations_with_fees() -> List[Dict]:
         )
         cursor = conn.cursor()
         cursor.execute('''
-        SELECT lower(ar.allocation) as "Allocation ID", sum(fees) / 10^18 as "Fees"
-        FROM public.allocation_summaries als
-        JOIN public.allocation_receipts ar on als.allocation = ar.allocation 
-        WHERE als."closedAt" is null
-        GROUP BY lower(ar.allocation)
+        SELECT allocation_id as "allocateId", value_aggregate / 10^18 as "Fees"
+        FROM public.scalar_tap_ravs
+        WHERE redeemed_at IS NULL;
         ''')
         allocations = [{"id": row[0], "fees": float(row[1])} for row in cursor.fetchall()]
         conn.close()
