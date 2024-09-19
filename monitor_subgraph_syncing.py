@@ -232,15 +232,21 @@ def monitor_subgraph_syncing():
             allocations = get_allocations_with_fees()
             logging.info(f"Got {len(allocations)} allocations with fees")
             
-            ipfs_hashes = get_ipfs_hashes(allocations)
-            logging.info(f"Got {len(ipfs_hashes)} IPFS hashes")
-            
-            indexing_statuses = get_indexing_statuses(ipfs_hashes)
-            logging.info(f"Got {len(indexing_statuses)} indexing statuses")
-            
-            update_subgraph_status(indexing_statuses)
-            
-            logging.info("Subgraph syncing check completed")
+            if len(allocations) > 0:
+                ipfs_hashes = get_ipfs_hashes(allocations)
+                logging.info(f"Got {len(ipfs_hashes)} IPFS hashes")
+                
+                if len(ipfs_hashes) > 0:
+                    indexing_statuses = get_indexing_statuses(ipfs_hashes)
+                    logging.info(f"Got {len(indexing_statuses)} indexing statuses")
+                    
+                    update_subgraph_status(indexing_statuses)
+                    
+                    logging.info("Subgraph syncing check completed")
+                else:
+                    logging.info("No IPFS hashes to process, skipping subgraph syncing check")
+            else:
+                logging.info("No allocations with fees, skipping subgraph syncing check")
             
             # Sleep for 5 minutes
             time.sleep(300)
