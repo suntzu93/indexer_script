@@ -15,7 +15,7 @@ def setup_logging():
     ]
     
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    
+
     for handler in handlers:
         handler.setLevel(logging.INFO)
         handler.setFormatter(formatter)
@@ -132,16 +132,15 @@ def monitor_rpc():
                         check_healthy(behind_block_number, chain_head_block_number, chain_rpc, current_block_number,
                                       your_rpc)
                     else:
-                        message = f"""Can not fetch chain_id from your rpc: {your_rpc}
-                                      Response status: {response.status_code}
-                                      Response text: {response.text}"""
+                        message = f"Can not fetch chain_id from your rpc {your_rpc.replace('http://', '').replace('https://', '')}"
+                        message += f" Response status {response.status_code}"
                         send_alert_msg(message)
                 except requests.exceptions.Timeout:
-                    message = f"""Timeout to fetch data from your rpc: {your_rpc}"""
+                    message = f"""Timeout to fetch data from your rpc: {your_rpc.replace('http://', '').replace('https://', '')}"""
                     send_alert_msg(message)
                 except Exception as e:
                     logging.error(f"error checking rpc: {str(e)}")
-                    message = f"""Can not fetch data from your rpc: {your_rpc}
+                    message = f"""Can not fetch data from your rpc: {your_rpc.replace('http://', '').replace('https://', '')}
                                   Error: {str(e)}"""
                     send_alert_msg(message)
 
@@ -202,6 +201,9 @@ def check_healthy(behind_block_number, chain_head_block_number, chain_rpc, curre
 
 def send_alert_msg(message):
     try:
+        # Remove "http://" and "https://" from the message if present
+        #message = ' '.join(char for char in message if char.isalnum() or char.isspace())
+        message = message.replace("-", " ").replace(".", " ").replace("_", " ")
         params = {
             'chatId': config.chat_id,
             'msg': message,
