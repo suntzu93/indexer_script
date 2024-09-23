@@ -947,7 +947,7 @@ def create_pub_and_sub():
         if not schema_name:
             return jsonify({"status": "error", "message": "schema_name is required"}), 400
 
-        result = handle_create_pub_sub(schema_name)
+        result = handle_create_pub_sub(schema_name, isCopy)
         if result["status"] == "success":
             return jsonify(result), 200
         else:
