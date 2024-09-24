@@ -85,3 +85,44 @@ def get_total_pending_reward():
         logging.error("get_total_pending_reward: " + str(e))
 
     return total_reward
+
+def get_allocation_reward(allocateId):
+    data_json = []
+    try:
+        # Set up the connection parameters
+        params = {
+            'host': config.db_host,
+            'port': config.db_port,
+            'database': config.agent_database,
+            'user': config.username,
+            'password': config.password,
+        }
+
+        # Connect to the database
+        conn = psycopg2.connect(**params)
+
+        # Set up a cursor to execute the SQL query
+        cur = conn.cursor()
+        # Execute the SQL query with the new WHERE clause
+        query = """
+        SELECT value_aggregate / 10^18 as "Fees"
+        FROM public.scalar_tap_ravs
+        WHERE redeemed_at IS NULL AND allocation_id = %s;
+        """
+        cur.execute(query, (allocateId,))
+
+        # Fetch the result
+        result = cur.fetchone()
+        if result:
+            data_json = {"fees": result[0]}
+        else:
+            data_json = {"fees": 0}
+
+        # Close the cursor and connection
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"get_allocation_reward error for allocateId {allocateId}: {str(e)}")
+        logging.error(f"get_allocation_reward for allocateId {allocateId}: {str(e)}")
+
+    return data_json

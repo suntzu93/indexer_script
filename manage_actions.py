@@ -340,6 +340,25 @@ def get_all_fees():
             "message": str(e)
         }), 500
 
+@app.route('/getQueryFees', methods=['POST'])
+def get_allocation_reward():
+    try:
+        token = request.form.get("token")
+        allocateId = request.form.get("allocateId")
+        if token != config.token:
+            return const.TOKEN_ERROR
+
+        fees = pending_reward.get_allocation_reward(allocateId)
+        return jsonify({
+            "status": "success",
+            "data": fees
+        }), 200
+    except Exception as e:
+        logging.error(f"Error in get_all_fees: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 @app.route('/restartAgent', methods=['POST'])
 def restart_agent():
