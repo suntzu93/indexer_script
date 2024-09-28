@@ -67,7 +67,7 @@ def drop_subscription(schema_name, replica_host, replica_index):
         conn.autocommit = True
         with conn.cursor() as cur:
             subscription_name = f"{schema_name}_sub" if replica_index == 0 else f"{schema_name}_sub_{replica_index}"
-            cur.execute(sql.SQL("DROP SUBSCRIPTION IF EXISTS {};").format(
+            cur.execute(sql.SQL("DROP SUBSCRIPTION IF EXISTS {} WITH (slot_name);").format(
                 sql.Identifier(subscription_name)
             ))
             logging.info(f"Subscription {subscription_name} dropped from replica {replica_host}.")
