@@ -943,6 +943,25 @@ def graphman_copy():
                 "message": output
             })
 
+        elif command == "cancel":
+            ipfsHash = request.form.get("ipfsHash")
+            if not ipfsHash:
+                return jsonify({"status": "error", "message": "ipfsHash is required for cancel command"}), 400
+
+            graphman_cmd = f"{config.graphman_cli} --config {config.graphman_config_file} unassign {ipfsHash}"
+            
+            result = subprocess.run([graphman_cmd], shell=True, check=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    universal_newlines=True)
+            
+            output = result.stdout.strip()
+            
+            return jsonify({
+                "status": "success",
+                "message": f"Copy action for {ipfsHash} has been cancelled. Output: {output}"
+            })
+
         else:
             return jsonify({"status": "error", "message": "Invalid command"}), 400
     
