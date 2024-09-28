@@ -334,7 +334,8 @@ def get_subscription_stats():
                     FROM pg_subscription s
                     LEFT JOIN pg_stat_subscription ss ON s.subname = ss.subname;
                 """)
-                subscription_stats = [dict(zip(cur.description, row)) for row in cur.fetchall()]
+                columns = [desc[0] for desc in cur.description]
+                subscription_stats = [dict(zip(columns, row)) for row in cur.fetchall()]
                 stats.extend([{**stat, "replica_host": replica_host} for stat in subscription_stats])
             conn.close()
         return {"status": "success", "data": stats}
