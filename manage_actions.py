@@ -1020,6 +1020,7 @@ def compare_row_counts_api():
     try:
         token = request.form.get("token")
         schema_name = request.form.get("schema_name")
+        use_exact_count = request.form.get("use_exact_count", "false").lower() == "true"
 
         if token != config.token:
             return const.TOKEN_ERROR, 403
@@ -1027,7 +1028,7 @@ def compare_row_counts_api():
         if not schema_name:
             return jsonify({"status": "error", "message": "schema_name is required"}), 400
 
-        result = compare_row_counts(schema_name)
+        result = compare_row_counts(schema_name, use_exact_count)
         if result["status"] == "success":
             return jsonify(result), 200
         else:

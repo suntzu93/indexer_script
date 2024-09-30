@@ -214,7 +214,7 @@ def handle_drop_pub_sub(schema_name):
         logging.error(f"Error in handle_drop_pub_sub: {e}")
         return {"status": "error", "message": str(e)}
 
-def compare_row_counts(schema_name):
+def compare_row_counts(schema_name, use_exact_count=False):
     try:
         primary_conn = get_connection(config.primary_host_local)
         with primary_conn.cursor() as cur:
@@ -243,13 +243,21 @@ def compare_row_counts(schema_name):
             primary_tables = [row[0] for row in primary_cur.fetchall()]
             
             for table in primary_tables:
-                # Estimated row count from primary using pg_class
-                primary_cur.execute("""
-                    SELECT reltuples::BIGINT
-                    FROM pg_class
-                    WHERE oid = %s::regclass;
-                """, (f"{schema_name}.{table}",))
-                primary_count = primary_cur.fetchone()[0] if primary_cur.rowcount > 0 else 0
+                if use_exact_count:
+                    # Exact row count from primary using COUNT(*)
+                    primary_cur.execute(sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
+                        sql.Identifier(schema_name),
+                        sql.Identifier(table)
+                    ))
+                    primary_count = primary_cur.fetchone()[0]
+                else:
+                    # Estimated row count from primary using pg_class
+                    primary_cur.execute("""
+                        SELECT reltuples::BIGINT
+                        FROM pg_class
+                        WHERE oid = %s::regclass;
+                    """, (f"{schema_name}.{table}",))
+                    primary_count = primary_cur.fetchone()[0] if primary_cur.rowcount > 0 else 0
                 
                 replica_counts = {}
                 
@@ -267,13 +275,21 @@ def compare_row_counts(schema_name):
                         table_exists = replica_cur.fetchone()[0]
                         
                         if table_exists:
-                            # Estimated row count from replica using pg_class
-                            replica_cur.execute("""
-                                SELECT reltuples::BIGINT
-                                FROM pg_class
-                                WHERE oid = %s::regclass;
-                            """, (f"{schema_name}.{table}",))
-                            replica_count = replica_cur.fetchone()[0] if replica_cur.rowcount > 0 else 0
+                            if use_exact_count:
+                                # Exact row count from replica using COUNT(*)
+                                replica_cur.execute(sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
+                                    sql.Identifier(schema_name),
+                                    sql.Identifier(table)
+                                ))
+                                replica_count = replica_cur.fetchone()[0]
+                            else:
+                                # Estimated row count from replica using pg_class
+                                replica_cur.execute("""
+                                    SELECT reltuples::BIGINT
+                                    FROM pg_class
+                                    WHERE oid = %s::regclass;
+                                """, (f"{schema_name}.{table}",))
+                                replica_count = replica_cur.fetchone()[0] if replica_cur.rowcount > 0 else 0
                         else:
                             replica_count = 0
                         
@@ -288,7 +304,11 @@ def compare_row_counts(schema_name):
                     "differences": {host: primary_count - count for host, count in replica_counts.items()}
                 })
         
-        return {"status": "success", "data": comparison_results}
+        return {
+            "status": "success", 
+            "data": comparison_results,
+            "count_method": "exact" if use_exact_count else "estimated"
+        }
     except Exception as e:
         logging.error(f"Error in compare_row_counts: {e}")
         return {"status": "error", "message": str(e)}
