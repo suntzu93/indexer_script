@@ -4,7 +4,6 @@ import logging
 import psycopg2
 import config
 
-
 def get_allocations_reward():
     data_json = []
     try:
@@ -27,7 +26,13 @@ def get_allocations_reward():
         query = """
         SELECT allocation_id as "allocateId", value_aggregate / 10^18 as "Fees"
         FROM public.scalar_tap_ravs
-        WHERE redeemed_at IS NULL;
+        WHERE redeemed_at IS NULL
+        UNION ALL
+        SELECT lower(ar.allocation) as "allocateId", sum(fees) / 10^18 as "Fees"
+        FROM public.allocation_summaries als
+        JOIN public.allocation_receipts ar on als.allocation = ar.allocation 
+        WHERE als."closedAt" is null
+        GROUP BY lower(ar.allocation);
             """
         cur.execute(query)
 
@@ -66,9 +71,17 @@ def get_total_pending_reward():
 
         # Execute the SQL query
         query = """
-        SELECT SUM(value_aggregate) / 10^18 as "TotalFees"
-        FROM public.scalar_tap_ravs
-        WHERE redeemed_at IS NULL;
+        SELECT SUM(total_fees) as "TotalFees"
+        FROM (
+            SELECT SUM(value_aggregate) / 10^18 as total_fees
+            FROM public.scalar_tap_ravs
+            WHERE redeemed_at IS NULL
+            UNION ALL
+            SELECT SUM(fees) / 10^18 as total_fees
+            FROM public.allocation_summaries als
+            JOIN public.allocation_receipts ar on als.allocation = ar.allocation 
+            WHERE als."closedAt" is null
+        ) as combined_fees;
             """
         cur.execute(query)
 
@@ -100,16 +113,28 @@ def get_allocation_reward(allocateId):
 
         # Connect to the database
         conn = psycopg2.connect(**params)
-
         # Set up a cursor to execute the SQL query
         cur = conn.cursor()
-        # Execute the SQL query with the new WHERE clause
-        query = """
+        # Execute the first SQL query
+        query1 = """
         SELECT value_aggregate / 10^18 as "Fees"
         FROM public.scalar_tap_ravs
         WHERE redeemed_at IS NULL AND allocation_id = %s;
         """
-        cur.execute(query, (allocateId,))
+        cur.execute(query1, (allocateId,))
+        result = cur.fetchone()
+
+        if not result or result[0] is None:
+            # If no result from the first query, execute the second query
+            query2 = """
+            SELECT SUM(fees) / 10^18 as "Fees"
+            FROM public.allocation_summaries als
+            JOIN public.allocation_receipts ar on als.allocation = ar.allocation 
+            WHERE als."closedAt" is null
+            and lower(ar.allocation) = lower(%s);
+            """
+            cur.execute(query2, (allocateId,))
+            result = cur.fetchone()
 
         # Fetch the result
         result = cur.fetchone()
