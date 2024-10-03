@@ -71,17 +71,10 @@ def get_total_pending_reward():
 
         # Execute the SQL query
         query = """
-        SELECT SUM(total_fees) as "TotalFees"
-        FROM (
-            SELECT SUM(value_aggregate) / 10^18 as total_fees
-            FROM public.scalar_tap_ravs
-            WHERE redeemed_at IS NULL
-            UNION ALL
             SELECT SUM(fees) / 10^18 as total_fees
             FROM public.allocation_summaries als
             JOIN public.allocation_receipts ar on als.allocation = ar.allocation 
             WHERE als."closedAt" is null
-        ) as combined_fees;
             """
         cur.execute(query)
 
