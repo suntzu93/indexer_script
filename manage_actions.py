@@ -20,8 +20,24 @@ from create_pub_sub import handle_create_pub_sub, handle_drop_pub_sub, compare_r
 app = Flask(__name__)
 CORS(app)
 
-logging.basicConfig(filename='indexer_script.log', level=logging.INFO)
+def setup_logging():
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # Create handlers for both file and console output
+    handlers = [
+        logging.FileHandler('manage_actions.log'),
+        logging.StreamHandler()
+    ]
+    
+    # Create formatter with timestamp
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
+    # Add formatter to handlers and handlers to logger
+    for handler in handlers:
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
 
 def get_chain_rpc(chain_name):
     chain_rpcs = {
@@ -1093,4 +1109,5 @@ def remove_schema_from_replica_api():
         return const.ERROR, 500
 
 if __name__ == '__main__':
+    setup_logging()
     app.run(host=config.host, port=config.port, debug=True)
