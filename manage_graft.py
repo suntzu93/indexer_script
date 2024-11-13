@@ -3,7 +3,7 @@ import requests
 import yaml
 import time
 from datetime import datetime, timedelta
-
+import config
 
 def init_db():
     conn = sqlite3.connect('subgraph_database.db')
@@ -29,7 +29,7 @@ def init_db():
 
 
 def fetch_subgraphs():
-    url = 'https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-arbitrum'
+    url = config.indexer_agent_network_subgraph_endpoint
     all_subgraphs = []
     skip = 0
     while True:
