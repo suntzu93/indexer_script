@@ -9,7 +9,6 @@ import logging
 import const
 import json
 import os.path
-import yaml
 import pending_reward
 import re
 import database_size
@@ -208,9 +207,11 @@ def get_poi():
                     False
                 ]
             }
+            print("start request block broken: " + str(data_eth_getBlockByNumber))
             response = requests.post(url=const.ARBITRUM_RPC_ENDPOINT,
                                      headers=headers,
                                      data=json.dumps(data_eth_getBlockByNumber))
+            print("response block broken: " + str(response.json()))
             if response.status_code == 200:
                 json_data = response.json()
                 l1BlockNumberHex = json_data["result"]["l1BlockNumber"]
@@ -229,7 +230,7 @@ def get_poi():
         response = requests.post(url=config.indexer_agent_network_subgraph_endpoint,
                                  json={"query": graphql_startBlock % (blockBroken, blockBroken)})
         json_data = response.json()
-        print(json_data)
+        print("json_data: " + str(json_data))
 
         if len(json_data["data"]["epoches"]) == 0 and blockBroken > 16568309:
             graphql_startBlock = """
@@ -242,7 +243,7 @@ def get_poi():
             response = requests.post(url=config.indexer_agent_network_subgraph_endpoint,
                                      json={"query": graphql_startBlock % (blockBroken)})
             json_data = response.json()
-            print(json_data)
+            print("data epoches: " + str(json_data))
 
         if response.status_code == 200:
             if len(json_data['data']['epoches']) == 0 and 16083151 < blockBroken < 16568309:
@@ -251,17 +252,19 @@ def get_poi():
                 startBlock = json_data["data"]["epoches"][0]["startBlock"]
             block_hash = get_block_hash(deployment, startBlock, network)
 
-            proof_of_indexing = 'query{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
+            proof_of_indexing = '{proofOfIndexing(subgraph:"%s",blockHash:"%s",blockNumber:%s,indexer:"%s")}' % (
                 deployment, block_hash, startBlock, config.indexer_address)
-
+            print("proof_of_indexing: " + proof_of_indexing)
             graphql_proof_of_indexing = {
                 "query": proof_of_indexing
             }
 
             poi_response = requests.post(url=config.indexer_node_rpc,
                                          json=graphql_proof_of_indexing)
+            print("poi_response: " + str(poi_response.json()))
             if poi_response.status_code == 200:
                 json_poi = poi_response.json()
+                print("json_poi: " + str(json_poi))
                 return json_poi["data"]["proofOfIndexing"]
         return action_output
     except Exception as e:
