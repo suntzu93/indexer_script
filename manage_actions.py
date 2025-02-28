@@ -60,6 +60,7 @@ def get_chain_rpc(chain_name):
         'linea': const.LINEA_RPC_ENDPOINT,
         'blast': const.BLAST_RPC_ENDPOINT,
         'moonbeam': const.MOONBEAM_RPC_ENDPOINT,
+        'sonic': const.SONIC_RPC_ENDPOINT,
     }
     return chain_rpcs.get(chain_name, None)
 

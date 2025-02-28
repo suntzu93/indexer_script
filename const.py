@@ -55,5 +55,6 @@ SCROLL_RPC_ENDPOINT = "https://scroll.drpc.org"
 LINEA_RPC_ENDPOINT = "https://linea.drpc.org"
 BLAST_RPC_ENDPOINT = "https://blast.drpc.org"
 MOONBEAM_RPC_ENDPOINT = "https://moonbeam.drpc.org"
+SONIC_RPC_ENDPOINT= "https://sonic.drpc.org"
 
 VERSION = "1.0.2"
