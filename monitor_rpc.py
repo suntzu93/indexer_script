@@ -103,6 +103,7 @@ def get_chain_rpc(chain_id):
         81457: const.BLAST_RPC_ENDPOINT,
         1284: const.MOONBEAM_RPC_ENDPOINT,
         146: const.SONIC_RPC_ENDPOINT,
+        1101: const.POLYGON_ZK_RPC_ENDPOINT,
 
     }
     return chain_ids.get(chain_id, chain_id)
