@@ -58,5 +58,6 @@ MOONBEAM_RPC_ENDPOINT = "https://moonbeam.drpc.org"
 SONIC_RPC_ENDPOINT= "https://sonic.drpc.org"
 POLYGON_ZK_RPC_ENDPOINT = "https://polygon-zkevm.drpc.org"
 SONEIUM_RPC_ENDPOINT = "https://rpc.soneium.org"
+BASE_SEPOLIA_RPC_ENDPOINT = "https://sepolia.base.org"
 
 VERSION = "1.0.2"

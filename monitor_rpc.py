@@ -105,7 +105,7 @@ def get_chain_rpc(chain_id):
         146: const.SONIC_RPC_ENDPOINT,
         1101: const.POLYGON_ZK_RPC_ENDPOINT,
         1868: const.SONEIUM_RPC_ENDPOINT,
-
+        84532: const.BASE_SEPOLIA_RPC_ENDPOINT,
     }
     return chain_ids.get(chain_id, chain_id)
 
