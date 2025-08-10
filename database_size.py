@@ -5,59 +5,77 @@ import logging
 def get_subgraph_sizes():
     all_subgraph_sizes = []
     
-    for db in config.graph_node_database:
-        try:
-            conn = psycopg2.connect(
-                host=config.db_host,
-                port=config.db_port,
-                database=db,
-                user=config.username,
-                password=config.password
-            )
-            
-            cursor = conn.cursor()
-            
-            query = """
-            SELECT 
-                sg.name as deployment_name,
-                size.total_bytes as size_total_bytes
-            FROM subgraphs."subgraph_deployment" as sd
-            left join subgraphs."subgraph_version" as sv on (sv.deployment = sd.deployment)
-            left join subgraphs."subgraph" as sg on (sv.id in (sg.current_version, sg.pending_version))
-            left join public."deployment_schemas" as ds on (ds.subgraph = sd.deployment)
-            left join (
-                SELECT *, total_bytes-index_bytes-coalesce(toast_bytes,0) AS table_bytes FROM (
-                    SELECT nspname AS table_schema
-                        , ds.subgraph
-                        , sum(pg_total_relation_size(c.oid)) AS total_bytes
-                        , sum(pg_indexes_size(c.oid)) AS index_bytes
-                        , sum(pg_total_relation_size(reltoastrelid)) AS toast_bytes
-                    FROM pg_class c
-                    LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-                        INNER JOIN deployment_schemas ds ON ds.name = n.nspname
-                    WHERE relkind = 'r'
-                        GROUP BY ds.subgraph,table_schema
-                ) a
-            ) as size on (sd.deployment = size.subgraph) order by sd.id
-            """
-            
-            cursor.execute(query)
-            results = cursor.fetchall()
-            
-            columns = [desc[0] for desc in cursor.description]
-            subgraph_sizes = [dict(zip(columns, row)) for row in results]
-            
-            # Add database name to each result
-            for size in subgraph_sizes:
-                size['database'] = db
-            
-            all_subgraph_sizes.extend(subgraph_sizes)
-            
-            cursor.close()
-            conn.close()
-            
-        except Exception as e:
-            logging.error(f"Error in get_subgraph_sizes for database {db}: {str(e)}")
-            print(f"Error in get_subgraph_sizes for database {db}: {str(e)}")
+    # First, get deployment schemas mapping from primary host
+    deployment_schemas = {}
+    try:
+        conn = psycopg2.connect(
+            host=config.primary_host,
+            port=config.db_port,
+            database=config.graph_node_database[0],  # Use first database
+            user=config.username,
+            password=config.password
+        )
+        
+        cursor = conn.cursor()
+        cursor.execute("SELECT subgraph, name FROM public.deployment_schemas")
+        results = cursor.fetchall()
+        
+        # Create mapping: schema_name -> subgraph_hash
+        for row in results:
+            deployment_schemas[row[1]] = row[0]  # name -> subgraph
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        logging.error(f"Error getting deployment schemas from primary host: {str(e)}")
+        print(f"Error getting deployment schemas from primary host: {str(e)}")
+    
+    # Now iterate through all shards to get schema sizes
+    for shard_host in config.shards:
+        for db in config.graph_node_database:
+            try:
+                conn = psycopg2.connect(
+                    host=shard_host,
+                    port=config.db_port,
+                    database=db,
+                    user=config.username,
+                    password=config.password
+                )
+                
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT 
+                    n.nspname as schema_name,
+                    sum(COALESCE(pg_total_relation_size(c.oid), 0)) AS total_bytes
+                FROM pg_class c
+                LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE relkind = 'r' 
+                AND n.nspname LIKE 'sgd%'
+                GROUP BY n.nspname
+                """
+                
+                cursor.execute(query)
+                results = cursor.fetchall()
+                
+                for row in results:
+                    schema_name = row[0]
+                    total_bytes = row[1]
+                    
+                    # Create response with only deployment_name and size_total_bytes
+                    size_data = {
+                        'deployment_name': deployment_schemas.get(schema_name, schema_name),
+                        'size_total_bytes': total_bytes
+                    }
+                    
+                    all_subgraph_sizes.append(size_data)
+                
+                cursor.close()
+                conn.close()
+                
+            except Exception as e:
+                logging.error(f"Error in get_subgraph_sizes for shard {shard_host} database {db}: {str(e)}")
+                print(f"Error in get_subgraph_sizes for shard {shard_host} database {db}: {str(e)}")
     
     return all_subgraph_sizes if all_subgraph_sizes else None
