@@ -325,8 +325,11 @@ def get_healthy_subgraph():
             else:
                 graphql_healthy_subgraph = "{ indexingStatuses { subgraph paused synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number} earliestBlock{number}}}}"
 
-            response = requests.post(url=config.indexer_node_rpc,
-                                     json={"query": graphql_healthy_subgraph})
+            response = requests.post(
+                url=config.indexer_node_rpc,
+                json={"query": graphql_healthy_subgraph},
+                timeout=120  # 2 minutes timeout
+            )
             indexing_status = response.json()
             reward = pending_reward.get_allocations_reward()
             indexing_status["reward"] = reward
