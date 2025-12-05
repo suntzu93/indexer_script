@@ -20,5 +20,5 @@ if __name__ == '__main__':
         thread_start_monitor_subgraph_syncing = threading.Thread(target=monitor_subgraph_syncing.monitor_subgraph_syncing, args=())
         thread_start_monitor_subgraph_syncing.start()
 
-        cmd_start_manage_agent_action = f"python3 manage_actions.py"
+        cmd_start_manage_agent_action = f"path/to/venv/bin/python3 manage_actions.py"
         subprocess.run([cmd_start_manage_agent_action], shell=True, check=True)
