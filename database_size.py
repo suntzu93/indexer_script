@@ -27,16 +27,13 @@ def get_subgraphs_by_status(is_offchain):
                 FROM deployment_schemas as a
                 JOIN subgraphs.subgraph_deployment_assignment as b
                 ON a.id = b.id
-                WHERE b.paused_at IS NULL
+                WHERE b.paused_at IS NOT NULL
             """
         else:
             # Get subgraphs where paused_at is NOT NULL (paused/onchain)
             query = """
                 SELECT a.subgraph
                 FROM deployment_schemas as a
-                JOIN subgraphs.subgraph_deployment_assignment as b
-                ON a.id = b.id
-                WHERE b.paused_at IS NOT NULL
             """
         
         cursor.execute(query)

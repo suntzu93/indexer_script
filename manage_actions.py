@@ -14,6 +14,8 @@ import re
 import database_size
 import re
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -313,58 +315,97 @@ def stream_log():
         return const.ERROR
 
 
-def batch_query_indexing_statuses(subgraph_list, batch_size=100):
+def query_single_batch(batch, batch_number):
     """
-    Query indexing statuses in batches to avoid timeout
+    Query a single batch of subgraphs
+    """
+    formatted_subgraphs = ','.join([f'"{s}"' for s in batch])
+    
+    print(f"Querying batch {batch_number} with {len(batch)} subgraphs")
+    graphql_query = """
+        { indexingStatuses(subgraphs: [%s]) { 
+            subgraph 
+            paused 
+            synced 
+            health 
+            node 
+            fatalError {
+                message 
+                deterministic 
+                block { number }
+            } 
+            chains {
+                network 
+                latestBlock {number} 
+                chainHeadBlock {number} 
+                earliestBlock{number}
+            }
+        }}
+    """ % formatted_subgraphs
+    
+    try:
+        response = requests.post(
+            url=config.indexer_node_rpc,
+            json={"query": graphql_query},
+            timeout=360
+        )
+        
+        if response.status_code == 200:
+            batch_data = response.json()
+            if "data" in batch_data and "indexingStatuses" in batch_data["data"]:
+                logging.info(f"Batch {batch_number} completed successfully with {len(batch_data['data']['indexingStatuses'])} results")
+                return batch_data["data"]["indexingStatuses"]
+        else:
+            logging.error(f"Batch {batch_number} failed with status code: {response.status_code}")
+            return []
+    except Exception as e:
+        logging.error(f"Error querying batch {batch_number}: {str(e)}")
+        print(f"Error querying batch {batch_number}: {str(e)}")
+        return []
+
+def batch_query_indexing_statuses(subgraph_list, batch_size=100, max_workers=5):
+    """
+    Query indexing statuses in batches using parallel requests
+    
+    Args:
+        subgraph_list: List of subgraph IDs to query
+        batch_size: Number of subgraphs per batch (default: 100)
+        max_workers: Number of parallel workers (default: 5)
+    
+    Returns:
+        List of indexing statuses
     """
     all_statuses = []
     
     # Split into batches
+    batches = []
     for i in range(0, len(subgraph_list), batch_size):
         batch = subgraph_list[i:i + batch_size]
+        batches.append((batch, i//batch_size + 1))
+    
+    logging.info(f"Querying {len(subgraph_list)} subgraphs in {len(batches)} batches with {max_workers} parallel workers")
+    start_time = time.time()
+    
+    # Use ThreadPoolExecutor to query batches in parallel
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all batch queries
+        future_to_batch = {
+            executor.submit(query_single_batch, batch, batch_num): batch_num 
+            for batch, batch_num in batches
+        }
         
-        # Format subgraphs for GraphQL query
-        formatted_subgraphs = ','.join([f'"{s}"' for s in batch])
-
-        
-        graphql_query = """
-            { indexingStatuses(subgraphs: [%s]) { 
-                subgraph 
-                paused 
-                synced 
-                health 
-                node 
-                fatalError {
-                    message 
-                    deterministic 
-                    block { number }
-                } 
-                chains {
-                    network 
-                    latestBlock {number} 
-                    chainHeadBlock {number} 
-                    earliestBlock{number}
-                }
-            }}
-        """ % formatted_subgraphs
-        
-        try:
-            response = requests.post(
-                url=config.indexer_node_rpc,
-                json={"query": graphql_query},
-                timeout=360
-            )
-
-            if response.status_code == 200:
-                batch_data = response.json()
-                if "data" in batch_data and "indexingStatuses" in batch_data["data"]:
-                    all_statuses.extend(batch_data["data"]["indexingStatuses"])
-            else:
-                logging.error(f"Batch query failed with status code: {response.status_code}")
-        except Exception as e:
-            logging.error(f"Error querying batch {i//batch_size + 1}: {str(e)}")
-            print(f"Error querying batch {i//batch_size + 1}: {str(e)}")
-
+        # Collect results as they complete
+        for future in as_completed(future_to_batch):
+            batch_num = future_to_batch[future]
+            try:
+                batch_results = future.result()
+                all_statuses.extend(batch_results)
+            except Exception as e:
+                logging.error(f"Batch {batch_num} generated an exception: {str(e)}")
+    
+    elapsed_time = time.time() - start_time
+    logging.info(f"Completed querying {len(all_statuses)} subgraphs in {elapsed_time:.2f} seconds")
+    
     return all_statuses
 
 @app.route('/getIndexingStatus', methods=['POST'])
@@ -396,8 +437,10 @@ def get_healthy_subgraph():
             
             logging.info(f"Found {len(subgraph_list)} subgraphs to query")
             
-            # Query in batches of 100
-            all_statuses = batch_query_indexing_statuses(subgraph_list, batch_size=100)
+            # Query in batches with configurable batch size and workers
+            batch_size = getattr(config, 'indexing_status_batch_size', 100)
+            max_workers = getattr(config, 'indexing_status_max_workers', 5)
+            all_statuses = batch_query_indexing_statuses(subgraph_list, batch_size=batch_size, max_workers=max_workers)
             
             indexing_status = {
                 "data": {
