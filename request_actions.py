@@ -114,7 +114,7 @@ def request_actions(url):
                                 if poi == 'NULL':
                                     cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} --output=json --network={config.agent_network}"
                                 else:
-                                    cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} {poi} true --output=json --network={config.agent_network}"
+                                    cmd_unallocate_action = f"{indexer_graph} indexer actions queue unallocate {ipfsHash} {allocateId} {poi} true 0 {poi} --force --output=json --network={config.agent_network}"
                                 logging.info(cmd_unallocate_action)
 
                                 print("Execute cmd : " + cmd_unallocate_action)
