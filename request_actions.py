@@ -143,7 +143,7 @@ def request_actions(url):
                                 if poi == 'NULL':
                                     cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} --output=json --network={config.agent_network}"
                                 else:
-                                    cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} {poi} true --output=json --network={config.agent_network}"
+                                    cmd_reallocate_action = f"{indexer_graph} indexer actions queue reallocate {ipfsHash} {allocateId} {allocatedTokens} {poi} true 0 {poi} --output=json --network={config.agent_network}"
                                 logging.info(cmd_reallocate_action)
 
                                 print("Execute cmd : " + cmd_reallocate_action)
