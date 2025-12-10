@@ -2,6 +2,58 @@ import psycopg2
 import config
 import logging
 
+def get_subgraphs_by_status(is_offchain):
+    """
+    Get list of subgraphs based on offchain status
+    is_offchain = False: return subgraphs where paused_at is NOT NULL
+    is_offchain = True: return subgraphs where paused_at is NULL
+    """
+    subgraphs = []
+    try:
+        conn = psycopg2.connect(
+            host=config.primary_host,
+            port=config.db_port,
+            database=config.graph_node_database[0],
+            user=config.username,
+            password=config.password
+        )
+        
+        cursor = conn.cursor()
+        
+        if is_offchain:
+            # Get subgraphs where paused_at is NULL (active/offchain)
+            query = """
+                SELECT a.subgraph
+                FROM deployment_schemas as a
+                JOIN subgraphs.subgraph_deployment_assignment as b
+                ON a.id = b.id
+                WHERE b.paused_at IS NULL
+            """
+        else:
+            # Get subgraphs where paused_at is NOT NULL (paused/onchain)
+            query = """
+                SELECT a.subgraph
+                FROM deployment_schemas as a
+                JOIN subgraphs.subgraph_deployment_assignment as b
+                ON a.id = b.id
+                WHERE b.paused_at IS NOT NULL
+            """
+        
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        for row in results:
+            subgraphs.append(row[0])
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        logging.error(f"Error getting subgraphs by status: {str(e)}")
+        print(f"Error getting subgraphs by status: {str(e)}")
+    
+    return subgraphs
+
 def get_subgraph_sizes():
     all_subgraph_sizes = []
     

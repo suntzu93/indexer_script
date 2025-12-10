@@ -313,30 +313,162 @@ def stream_log():
         return const.ERROR
 
 
+def batch_query_indexing_statuses(subgraph_list, batch_size=100):
+    """
+    Query indexing statuses in batches to avoid timeout
+    """
+    all_statuses = []
+    
+    # Split into batches
+    for i in range(0, len(subgraph_list), batch_size):
+        batch = subgraph_list[i:i + batch_size]
+        
+        # Format subgraphs for GraphQL query
+        formatted_subgraphs = ','.join([f'"{s}"' for s in batch])
+
+        
+        graphql_query = """
+            { indexingStatuses(subgraphs: [%s]) { 
+                subgraph 
+                paused 
+                synced 
+                health 
+                node 
+                fatalError {
+                    message 
+                    deterministic 
+                    block { number }
+                } 
+                chains {
+                    network 
+                    latestBlock {number} 
+                    chainHeadBlock {number} 
+                    earliestBlock{number}
+                }
+            }}
+        """ % formatted_subgraphs
+        
+        try:
+            response = requests.post(
+                url=config.indexer_node_rpc,
+                json={"query": graphql_query},
+                timeout=360
+            )
+
+            if response.status_code == 200:
+                batch_data = response.json()
+                if "data" in batch_data and "indexingStatuses" in batch_data["data"]:
+                    all_statuses.extend(batch_data["data"]["indexingStatuses"])
+            else:
+                logging.error(f"Batch query failed with status code: {response.status_code}")
+        except Exception as e:
+            logging.error(f"Error querying batch {i//batch_size + 1}: {str(e)}")
+            print(f"Error querying batch {i//batch_size + 1}: {str(e)}")
+
+    return all_statuses
+
 @app.route('/getIndexingStatus', methods=['POST'])
 def get_healthy_subgraph():
     try:
         token = request.form.get("token")
         subgraphs = request.form.get("subgraphs")
-        if token == config.token:
-            if subgraphs and subgraphs != "all":
-                graphql_healthy_subgraph = """
-                                            { indexingStatuses(subgraphs: [%s]) { subgraph paused synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number} earliestBlock{number}}}}""" % subgraphs
-            else:
-                graphql_healthy_subgraph = "{ indexingStatuses { subgraph paused synced health node fatalError {message deterministic block { number }} chains {network latestBlock {number} chainHeadBlock {number} earliestBlock{number}}}}"
-
+        is_offchain = request.form.get("isOffchain")
+        
+        if token != config.token:
+            return const.TOKEN_ERROR
+        
+        # Handle "all" subgraphs with batching
+        if subgraphs == "all":
+            # Convert is_offchain to boolean
+            is_offchain_bool = is_offchain and is_offchain.lower() in ['true', '1', 'yes']
+            
+            # Get subgraphs from database based on offchain status
+            subgraph_list = database_size.get_subgraphs_by_status(is_offchain_bool)
+            
+            if not subgraph_list:
+                logging.warning("No subgraphs found for the given criteria")
+                return json.dumps({
+                    "data": {
+                        "indexingStatuses": []
+                    },
+                    "reward": pending_reward.get_allocations_reward()
+                })
+            
+            logging.info(f"Found {len(subgraph_list)} subgraphs to query")
+            
+            # Query in batches of 100
+            all_statuses = batch_query_indexing_statuses(subgraph_list, batch_size=100)
+            
+            indexing_status = {
+                "data": {
+                    "indexingStatuses": all_statuses
+                }
+            }
+        elif subgraphs:
+            # Specific subgraphs provided
+            graphql_healthy_subgraph = """
+                { indexingStatuses(subgraphs: [%s]) { 
+                    subgraph 
+                    paused 
+                    synced 
+                    health 
+                    node 
+                    fatalError {
+                        message 
+                        deterministic 
+                        block { number }
+                    } 
+                    chains {
+                        network 
+                        latestBlock {number} 
+                        chainHeadBlock {number} 
+                        earliestBlock{number}
+                    }
+                }}
+            """ % subgraphs
+            
             response = requests.post(
                 url=config.indexer_node_rpc,
                 json={"query": graphql_healthy_subgraph},
-                timeout=360  # 2 minutes timeout
+                timeout=360
             )
             indexing_status = response.json()
-            reward = pending_reward.get_allocations_reward()
-            indexing_status["reward"] = reward
-
-            return json.dumps(indexing_status)
         else:
-            return const.TOKEN_ERROR
+            # No filter - get all (original behavior)
+            graphql_healthy_subgraph = """
+                { indexingStatuses { 
+                    subgraph 
+                    paused 
+                    synced 
+                    health 
+                    node 
+                    fatalError {
+                        message 
+                        deterministic 
+                        block { number }
+                    } 
+                    chains {
+                        network 
+                        latestBlock {number} 
+                        chainHeadBlock {number} 
+                        earliestBlock{number}
+                    }
+                }}
+            """
+            
+            response = requests.post(
+                url=config.indexer_node_rpc,
+                json={"query": graphql_healthy_subgraph},
+                timeout=360
+            )
+            indexing_status = response.json()
+        
+        # Add reward information
+        reward = pending_reward.get_allocations_reward()
+        indexing_status["reward"] = reward
+        
+        return json.dumps(indexing_status)
+        
     except Exception as e:
         print(e)
         logging.error("get_healthy_subgraph: " + str(e))
