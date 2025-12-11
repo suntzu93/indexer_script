@@ -24,8 +24,8 @@ def get_allocations_reward():
 
         # Execute the SQL query
         query = """
-        SELECT allocation_id as "allocateId", value_aggregate / 10^18 as "Fees"
-        FROM public.scalar_tap_ravs
+        SELECT '0x' || substring(collection_id, 25) as "allocateId", value_aggregate / 10^18 as "Fees"
+        FROM public.tap_horizon_ravs
         WHERE redeemed_at IS NULL
         UNION ALL
         SELECT lower(ar.allocation) as "allocateId", sum(fees) / 10^18 as "Fees"
@@ -74,7 +74,7 @@ def get_total_pending_reward():
         SELECT SUM(total_fees) as "TotalFees"
         FROM (
             SELECT SUM(value_aggregate) / 10^18 as total_fees
-            FROM public.scalar_tap_ravs
+            FROM public.tap_horizon_ravs
             WHERE redeemed_at IS NULL
             UNION ALL
             SELECT SUM(fees) / 10^18 as total_fees
@@ -115,13 +115,17 @@ def get_allocation_reward(allocateId):
         conn = psycopg2.connect(**params)
         # Set up a cursor to execute the SQL query
         cur = conn.cursor()
+        
+        # Convert allocateId from 0x format to collection_id format (remove 0x, pad to 64 chars)
+        collection_id = allocateId.replace('0x', '').lower().zfill(64)
+        
         # Execute the first SQL query
         query1 = """
         SELECT value_aggregate / 10^18 as "Fees"
-        FROM public.scalar_tap_ravs
-        WHERE redeemed_at IS NULL AND allocation_id = %s;
+        FROM public.tap_horizon_ravs
+        WHERE redeemed_at IS NULL AND collection_id = %s;
         """
-        cur.execute(query1, (allocateId,))
+        cur.execute(query1, (collection_id,))
         result = cur.fetchone()
 
         if not result or result[0] is None:
@@ -136,9 +140,8 @@ def get_allocation_reward(allocateId):
             cur.execute(query2, (allocateId,))
             result = cur.fetchone()
 
-        # Fetch the result
-        result = cur.fetchone()
-        if result:
+        # Note: removed duplicate fetchone() call - result is already fetched above
+        if result and result[0] is not None:
             data_json = {"fees": result[0]}
         else:
             data_json = {"fees": 0}
